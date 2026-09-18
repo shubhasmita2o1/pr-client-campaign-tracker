@@ -1,14 +1,13 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { createClient } from "npm:@supabase/supabase-js@2"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
-const GEMINI_MODEL = "gemini-2.0-flash"
+const model = "gemini-3.6-flash";
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -32,12 +31,10 @@ serve(async (req) => {
       throw new Error("GEMINI_API_KEY is not set")
     }
 
-    // Create Supabase admin client (bypasses RLS — this function runs server-side only)
+    // Create Supabase admin client (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // 1. Download the screenshot directly from storage.
-    //    (A signed URL is not usable here — Gemini's inline_data needs actual
-    //    base64 bytes, not a link it can fetch itself.)
+    // 1. Download the screenshot from storage
     const { data: fileBlob, error: downloadError } = await supabase
       .storage
       .from("campaign-screenshots")
@@ -47,7 +44,6 @@ serve(async (req) => {
       throw new Error(`Could not download screenshot: ${downloadError?.message ?? "unknown error"}`)
     }
 
-    // Detect mime type from the blob itself rather than assuming PNG
     const mimeType = fileBlob.type && fileBlob.type.startsWith("image/")
       ? fileBlob.type
       : "image/png"
@@ -55,7 +51,7 @@ serve(async (req) => {
     const arrayBuffer = await fileBlob.arrayBuffer()
     const base64Image = encodeBase64(arrayBuffer)
 
-    // 2. Call Gemini Vision API with the actual image bytes attached
+    // 2. Call Gemini Vision
     const prompt = `
 You are an expert at reading marketing / PR campaign dashboards from screenshots.
 
@@ -84,12 +80,10 @@ Do not add any extra text outside the JSON.
 `
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
@@ -99,15 +93,15 @@ Do not add any extra text outside the JSON.
                   inline_data: {
                     mime_type: mimeType,
                     data: base64Image,
-                  }
-                }
-              ]
-            }
+                  },
+                },
+              ],
+            },
           ],
           generationConfig: {
-            response_mime_type: "application/json"
-          }
-        })
+            response_mime_type: "application/json",
+          },
+        }),
       }
     )
 
@@ -127,7 +121,7 @@ Do not add any extra text outside the JSON.
       coverageSecured: null,
       confidenceScore: 0,
       notes: "Could not fully parse the screenshot",
-      detectedChannel: "unknown"
+      detectedChannel: "unknown",
     }
 
     let parseSucceeded = false
@@ -141,14 +135,10 @@ Do not add any extra text outside the JSON.
       console.error("Failed to parse Gemini response", e, geminiData)
     }
 
-    // 3. Save the result into campaign_screenshots table
-    //    .select() added so a zero-row match (bad path/id) is caught instead of
-    //    silently returning success with nothing actually saved.
+    // 3. Save the extracted metrics
     const { data: updatedRows, error: updateError } = await supabase
       .from("campaign_screenshots")
-      .update({
-        extracted_metrics: extracted
-      })
+      .update({ extracted_metrics: extracted })
       .eq("file_path", screenshotPath)
       .eq("campaign_id", campaignId)
       .select("id")
@@ -166,28 +156,26 @@ Do not add any extra text outside the JSON.
       JSON.stringify({
         success: true,
         parsed: parseSucceeded,
-        metrics: extracted
+        metrics: extracted,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200
+        status: 200,
       }
     )
-
   } catch (error) {
     console.error(error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500
+        status: 500,
       }
     )
   }
 })
 
-// Encode an ArrayBuffer to base64 in chunks, to avoid call-stack limits on
-// large images that String.fromCharCode(...bytes) would hit.
+// Safe base64 encoder for large images
 function encodeBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   const chunkSize = 0x8000
