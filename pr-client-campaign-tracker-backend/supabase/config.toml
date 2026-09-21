@@ -424,3 +424,14 @@ entrypoint = "./functions/gemini-extract-metrics/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/claude-extract-metrics/*.html" ]
+
+[functions.read-ai-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/read-ai-webhook/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/read-ai-webhook/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/read-ai-webhook/*.html" ]
