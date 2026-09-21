@@ -135,9 +135,9 @@ POST /functions/v1/gemini-extract-metrics
 
 - [x] Schema + RLS + storage buckets
 - [x] Gemini screenshot metric extraction
-- [ ] Idempotency constraints for webhook/sync sources
-- [ ] `webhook_events`, `integration_accounts`, `sync_state`, `import_batches` tables
-- [ ] Read AI webhook ingestion + transcript-to-meeting auto-matching
+- [x] Idempotency constraints for webhook/sync sources
+- [x] `webhook_events`, `integration_accounts`, `sync_state`, `import_batches` tables
+- [x] Read AI webhook ingestion + transcript-to-meeting auto-matching
 - [ ] Calendly sync
 - [ ] Google Calendar sync
 - [ ] XLSX historical data import
