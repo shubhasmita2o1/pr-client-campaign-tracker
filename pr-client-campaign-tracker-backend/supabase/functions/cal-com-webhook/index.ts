@@ -152,7 +152,7 @@ Deno.serve(async (req: Request) => {
     const { data: existingEvent } = await supabase
       .from("webhook_events")
       .select("id, status, related_meeting_id")
-      .eq("source", "other") // Cal.com stored as 'other' until we extend the check constraint
+      .eq("source", "cal_com") // Cal.com stored as 'other' until we extend the check constraint
       .eq("external_event_id", externalEventId)
       .maybeSingle()
 
@@ -177,7 +177,7 @@ Deno.serve(async (req: Request) => {
       const { data: webhookRow, error: webhookInsertError } = await supabase
         .from("webhook_events")
         .insert({
-          source: "other",
+          source: "cal_com",
           external_event_id: externalEventId,
           event_type: triggerEvent,
           payload: body,
@@ -256,7 +256,7 @@ Deno.serve(async (req: Request) => {
     const { data: existingMeeting } = await supabase
       .from("meetings")
       .select("id")
-      .eq("calendly_event_id", String(bookingUid))
+      .eq("cal_com_booking_uid", String(bookingUid))
       .maybeSingle()
 
     let meetingId: string | null = existingMeeting?.id ?? null
@@ -294,7 +294,7 @@ Deno.serve(async (req: Request) => {
           duration_minutes: durationMinutes,
           location,
           type: "Cal.com",
-          calendly_event_id: String(bookingUid), // Cal.com booking uid stored here
+          cal_com_booking_uid: String(bookingUid), // Cal.com booking uid stored here
           transcript_status: "none",
           notes: attendeeNames.length
             ? `Attendees: ${attendeeNames.join(", ")}`
