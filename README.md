@@ -1,133 +1,160 @@
 # PR Client & Campaign Tracker
 
-Internal tool for a PR agency team: client/meeting tracking with call transcripts,
-outbound campaign tracking with screenshot-based metric extraction.
+Internal tool for a PR agency team: client and meeting tracking, call transcripts, and outbound campaign performance (including screenshot-based metric extraction).
 
-> **Status:** Backend-first rebuild in progress. The `src/` React app in this repo
-> is an early prototype running on mock data — it will be rebuilt once the
-> Supabase backend below is finished. Don't build new frontend features against
-> `src/` right now.
+> **Status:** Backend phase complete. The `src/` React app is an early prototype on mock data and will be rebuilt against the live Supabase backend next. Deploy target: Netlify.
 
 ## Stack
 
-- **Frontend (to be rebuilt):** React + TypeScript + Vite
-- **Backend:** Supabase — Postgres, Auth, Storage, Edge Functions
-- **Metric extraction:** Gemini Vision API (`gemini-2.0-flash`)
-- **Deploy target:** Netlify
+| Layer | Technology |
+|-------|------------|
+| Frontend (next) | React + TypeScript + Vite |
+| Backend | Supabase (Postgres, Auth, Storage, Edge Functions) |
+| Metric extraction | Google Gemini Vision (`gemini-3.6-flash`) |
+| Scheduling | Cal.com (webhooks) |
+| Transcripts | Read AI (webhooks) |
+| Calendar | Google Calendar (webhook / sync helper) |
+| Historical import | XLSX via Edge Function |
+| Deploy | Netlify (frontend, upcoming) |
 
 ## Project structure
 
 ```
 pr-client-campaign-tracker/
-├── src/                                    # Prototype frontend (mock data, being replaced)
+├── src/                                      # Prototype frontend (mock data — to be rebuilt)
 ├── pr-client-campaign-tracker-backend/
-│   └── supabase/                           # Source of truth for the backend
+│   └── supabase/                             # Source of truth for the backend
 │       ├── config.toml
-│       ├── migrations/                     # Schema, in order
+│       ├── migrations/
 │       │   ├── 20260917113532_initial_schema.sql
 │       │   ├── 20260917122034_auth_profile_trigger.sql
-│       │   └── 20260917122124_seed_sample_data.sql
+│       │   ├── 20260917122124_seed_sample_data.sql
+│       │   └── 20260921134700_idempotency_and_webhook_tables.sql
 │       └── functions/
-│           └── gemini-extract-metrics/     # Screenshot → campaign metrics
+│           ├── gemini-extract-metrics/       # Screenshot → campaign metrics
+│           ├── read-ai-webhook/              # Read AI transcript ingestion
+│           ├── cal-com-webhook/              # Cal.com booking → meetings
+│           ├── google-calendar-webhook/      # Google Calendar → meetings
+│           └── xlsx-import/                  # Historical XLSX import
 └── README.md
 ```
 
-There is only one `supabase/` directory that matters —
-`pr-client-campaign-tracker-backend/supabase/`. If you see a second `supabase/`
-folder at the repo root, it's stale; don't run commands from there.
+Use only `pr-client-campaign-tracker-backend/supabase/` for Supabase CLI commands.
+
+## Backend capabilities (done)
+
+- **Clients** — records, status, contacts, tags
+- **Meetings** — history, attendees, Cal.com + Google Calendar sync
+- **Transcripts** — multi-part, segments, action items; Read AI webhook + auto-match to meetings
+- **Proposals** — PDF metadata + `proposals` storage bucket
+- **Campaigns** — copy, status, metrics channels
+- **Screenshot metrics** — upload to `campaign-screenshots` → Gemini Vision → `extracted_metrics`
+- **Idempotency** — `webhook_events`, `integration_accounts`, `sync_state`, `import_batches`
+- **XLSX import** — Clients, Meetings, Campaigns (+ optional metrics rows)
+
+## Edge Functions
+
+| Function | Purpose | Secrets |
+|----------|---------|---------|
+| `gemini-extract-metrics` | Extract metrics from campaign screenshots | `GEMINI_API_KEY` |
+| `read-ai-webhook` | Ingest Read AI transcripts | `READ_AI_WEBHOOK_SECRET` (optional) |
+| `cal-com-webhook` | Create/update/cancel meetings from Cal.com | `CAL_COM_WEBHOOK_SECRET` |
+| `google-calendar-webhook` | Upsert meetings from Google Calendar | `GOOGLE_CALENDAR_CHANNEL_TOKEN` (optional `GOOGLE_CALENDAR_ACCESS_TOKEN`, `GOOGLE_CALENDAR_ID`) |
+| `xlsx-import` | Bulk / historical import from Storage | Service role |
+
+### Function base URL
+
+```
+https://<project-ref>.supabase.co/functions/v1/<function-name>
+```
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
-- [Deno](https://deno.land/) — required to edit/run the edge functions
-  ```powershell
-  irm https://deno.land/install.ps1 | iex
-  ```
-  Then restart your terminal and confirm with `deno --version`.
-- [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
-  ```powershell
-  npm install -g supabase
-  ```
-- A Supabase project (local via Docker, or hosted) and a
-  [Gemini API key](https://aistudio.google.com/apikey)
+- Node.js 18+
+- [Deno](https://deno.land/) (for editing Edge Functions)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
+- A Supabase project
+- A [Gemini API key](https://aistudio.google.com/apikey)
 
 ## Backend setup
 
-All commands below run from `pr-client-campaign-tracker-backend/supabase/`.
-
 ```powershell
-cd pr-client-campaign-tracker-backend/supabase
-```
-
-### 1. Link to your Supabase project
-
-```powershell
+cd pr-client-campaign-tracker-backend
 supabase link --project-ref <your-project-ref>
-```
-
-### 2. Apply migrations
-
-```powershell
 supabase db push
 ```
 
-This creates all tables (`profiles`, `clients`, `proposals`, `meetings`,
-`meeting_attendees`, `transcripts`, `transcript_parts`, `transcript_segments`,
-`transcript_action_items`, `campaigns`, `campaign_metrics`,
-`campaign_screenshots`), enables RLS, and sets up the storage buckets.
-
-### 3. Set edge function secrets
+### Secrets
 
 ```powershell
-supabase secrets set GEMINI_API_KEY=your_key_here
+supabase secrets set GEMINI_API_KEY=your_gemini_key
+supabase secrets set READ_AI_WEBHOOK_SECRET=your_read_ai_secret
+supabase secrets set CAL_COM_WEBHOOK_SECRET=your_cal_com_secret
+supabase secrets set GOOGLE_CALENDAR_CHANNEL_TOKEN=your_gcal_token
 ```
 
-### 4. Deploy the edge function
+Optional (live Google Calendar API pull):
+
+```powershell
+supabase secrets set GOOGLE_CALENDAR_ACCESS_TOKEN=ya29.your_token
+supabase secrets set GOOGLE_CALENDAR_ID=primary
+```
+
+### Deploy functions
 
 ```powershell
 supabase functions deploy gemini-extract-metrics
+supabase functions deploy read-ai-webhook
+supabase functions deploy cal-com-webhook
+supabase functions deploy google-calendar-webhook
+supabase functions deploy xlsx-import
 ```
 
-To run it locally instead, for testing:
+### Storage buckets
 
-```powershell
-supabase functions serve gemini-extract-metrics --env-file ./.env
-```
+| Bucket | Use |
+|--------|-----|
+| `proposals` | PDF proposals / contracts |
+| `campaign-screenshots` | Screenshots for Gemini metric extraction |
+| `imports` | XLSX files for historical import |
 
-## Editing edge functions in VS Code
+## XLSX import
 
-The `functions/` directory uses Deno, not Node — its imports and globals
-(`Deno.env`, remote `https://` imports) will show as errors in a normal
-TypeScript setup unless the Deno extension is scoped to that folder.
-
-Install the **Deno** extension (`denoland.vscode-deno`), then add
-`.vscode/settings.json` at the project root:
+1. Upload an `.xlsx` file to the `imports` storage bucket.
+2. Call the function:
 
 ```json
 {
-  "deno.enablePaths": [
-    "pr-client-campaign-tracker-backend/supabase/functions"
-  ],
-  "deno.lint": true,
-  "deno.unstable": true
+  "filePath": "historical-data.xlsx",
+  "fileName": "historical-data.xlsx"
 }
 ```
 
-Reload the window after saving. This keeps Deno scoped to the functions
-folder only — the rest of the repo (`src/`) still uses normal Node tooling.
+Supported sheets (sheet name can contain the keyword):
 
-## Gemini extraction function
+| Sheet keyword | Imports into |
+|---------------|--------------|
+| Clients | `clients` |
+| Meetings / Calls | `meetings` |
+| Campaigns | `campaigns` + optional `campaign_metrics` |
 
-`gemini-extract-metrics` takes a `screenshotPath` and `campaignId`, downloads
-the screenshot from the `campaign-screenshots` storage bucket, sends it to
-Gemini for metric extraction (impressions, opens, clicks, replies, coverage),
-and writes the result to `campaign_screenshots.extracted_metrics`.
+Column headers are matched flexibly (for example `client_name` or `Client Name`).
+
+## VS Code / Cursor setup for Edge Functions
+
+Install the **Deno** extension, then use this `.vscode/settings.json`:
 
 ```json
-POST /functions/v1/gemini-extract-metrics
 {
-  "screenshotPath": "campaign-123/screenshot.png",
-  "campaignId": "campaign-123"
+  "deno.enable": true,
+  "deno.enablePaths": [
+    "./pr-client-campaign-tracker-backend/supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
 }
 ```
 
@@ -135,11 +162,23 @@ POST /functions/v1/gemini-extract-metrics
 
 - [x] Schema + RLS + storage buckets
 - [x] Gemini screenshot metric extraction
-- [x] Idempotency constraints for webhook/sync sources
-- [x] `webhook_events`, `integration_accounts`, `sync_state`, `import_batches` tables
-- [x] Read AI webhook ingestion + transcript-to-meeting auto-matching
-- [ ] Calendly sync
-- [ ] Google Calendar sync
-- [ ] XLSX historical data import
-- [ ] Frontend rebuilt against the real backend
+- [x] Idempotency + webhook foundation tables
+- [x] Read AI webhook + transcript-to-meeting auto-match
+- [x] Cal.com webhook (used instead of Calendly in this build)
+- [x] Google Calendar webhook / sync helper
+- [x] XLSX historical import (clients, meetings, campaigns)
+- [ ] Frontend rebuilt against live Supabase
+- [ ] Global search + month/status filters (UI)
 - [ ] Netlify deploy config
+- [ ] Production Auth (team login)
+
+## Notes
+
+- The original brief mentioned Claude and Calendly. This project uses **Gemini** for vision metrics and **Cal.com** for scheduling webhooks.
+- `meetings.cal_com_booking_uid` stores Cal.com booking IDs.
+- `meetings.gcal_event_id` stores Google Calendar event IDs.
+- Edge Functions use the service role. If you add new tables, grant `service_role` access as needed.
+
+## License
+
+Private — internal PR agency use.
