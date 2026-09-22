@@ -375,8 +375,189 @@ Deno.serve(async (req: Request) => {
       results.push(sheetResult)
     }
 
+        // ---------------------------------------------------------
+    // 5. Import CAMPAIGNS sheet (if present)
     // ---------------------------------------------------------
-    // 5. Finalize batch
+    const campaignSheetName = workbook.SheetNames.find((n) =>
+      /campaign/i.test(n),
+    )
+
+    if (campaignSheetName) {
+      const sheet = workbook.Sheets[campaignSheetName]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+        defval: "",
+      })
+      totalRows += rows.length
+      const sheetResult: ImportResult = {
+        sheet: campaignSheetName,
+        success: 0,
+        errors: [],
+      }
+
+      const { data: allClients } = await supabase
+        .from("clients")
+        .select("id, name, company")
+
+      const findClientId = (hint: string): string | null => {
+        if (!hint || !allClients) return null
+        const h = hint.toLowerCase()
+        const match = allClients.find(
+          (c) =>
+            c.name?.toLowerCase() === h ||
+            c.company?.toLowerCase() === h ||
+            c.name?.toLowerCase().includes(h) ||
+            c.company?.toLowerCase().includes(h),
+        )
+        return match?.id ?? null
+      }
+
+      const toInt = (v: string): number | null => {
+        if (!v) return null
+        const n = Number(String(v).replace(/,/g, ""))
+        return isNaN(n) ? null : Math.round(n)
+      }
+
+      const toDateOnly = (v: string): string | null => {
+        const iso = parseDate(v)
+        return iso ? iso.slice(0, 10) : null
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        const title = pick(row, [
+          "title",
+          "campaign",
+          "campaign_name",
+          "name",
+        ])
+        const clientHint = pick(row, [
+          "client",
+          "client_name",
+          "company",
+          "account",
+        ])
+        const statusRaw = pick(row, ["status"]).toLowerCase()
+        const status = statusRaw || "active"
+        const type = pick(row, ["type", "campaign_type"]) || null
+        const start_date = toDateOnly(
+          pick(row, ["start_date", "start", "from"]),
+        )
+        const end_date = toDateOnly(pick(row, ["end_date", "end", "to"]))
+        const copy_text =
+          pick(row, ["copy_text", "copy", "body", "message"]) || null
+        const channel =
+          pick(row, ["channel", "outlet", "platform"]) || "Imported"
+        const pitched = toInt(pick(row, ["pitched", "pitches"]))
+        const impressions = toInt(
+          pick(row, ["impressions", "impr", "views"]),
+        )
+        const opens = toInt(pick(row, ["opens", "open"]))
+        const clicks = toInt(pick(row, ["clicks", "click"]))
+        const replies = toInt(pick(row, ["replies", "reply"]))
+        const coverage_secured = toInt(
+          pick(row, [
+            "coverage_secured",
+            "coverage",
+            "secured",
+            "placements",
+          ]),
+        )
+
+        if (!title) {
+          const msg = "Missing campaign title"
+          sheetResult.errors.push({ row: i + 2, message: msg })
+          allErrors.push({
+            sheet: campaignSheetName,
+            row: i + 2,
+            message: msg,
+          })
+          errorRows++
+          continue
+        }
+
+        let clientId = findClientId(clientHint)
+        if (!clientId) {
+          const { data: fallback } = await supabase
+            .from("clients")
+            .select("id")
+            .eq("status", "active")
+            .limit(1)
+            .maybeSingle()
+          clientId = fallback?.id ?? null
+        }
+
+        const { data: campaign, error: campErr } = await supabase
+          .from("campaigns")
+          .insert({
+            title,
+            client_id: clientId,
+            status,
+            type,
+            start_date,
+            end_date,
+            copy_text,
+          })
+          .select("id")
+          .single()
+
+        if (campErr || !campaign) {
+          const msg = campErr?.message || "campaign insert failed"
+          sheetResult.errors.push({ row: i + 2, message: msg })
+          allErrors.push({
+            sheet: campaignSheetName,
+            row: i + 2,
+            message: msg,
+          })
+          errorRows++
+          continue
+        }
+
+        // Optional metrics row when any metric column is present
+        const hasMetrics =
+          pitched != null ||
+          impressions != null ||
+          opens != null ||
+          clicks != null ||
+          replies != null ||
+          coverage_secured != null
+
+        if (hasMetrics) {
+          const { error: metErr } = await supabase
+            .from("campaign_metrics")
+            .insert({
+              campaign_id: campaign.id,
+              channel,
+              pitched,
+              impressions,
+              opens,
+              clicks,
+              replies,
+              coverage_secured,
+            })
+
+          if (metErr) {
+            sheetResult.errors.push({
+              row: i + 2,
+              message: `campaign ok, metrics failed: ${metErr.message}`,
+            })
+            allErrors.push({
+              sheet: campaignSheetName,
+              row: i + 2,
+              message: metErr.message,
+            })
+            // still count campaign as success
+          }
+        }
+
+        sheetResult.success++
+        successRows++
+      }
+
+      results.push(sheetResult)
+    }
+
+    // ---------------------------------------------------------
+    // 6. Finalize batch
     // ---------------------------------------------------------
     const status =
       errorRows === 0

@@ -457,3 +457,14 @@ entrypoint = "./functions/xlsx-import/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/xlsx-import/*.html" ]
+
+[functions.google-calendar-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/google-calendar-webhook/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/google-calendar-webhook/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/google-calendar-webhook/*.html" ]
