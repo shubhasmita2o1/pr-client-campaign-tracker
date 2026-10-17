@@ -34,11 +34,15 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Download,
+  CalendarCheck,
+  FileText
 } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 export const MeetingsPage: React.FC = () => {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialMeetingId = searchParams.get('meetingId')
 
@@ -47,7 +51,8 @@ export const MeetingsPage: React.FC = () => {
     search: '',
     clientId: 'all',
     transcriptStatus: 'all',
-    type: 'all'
+    type: 'all',
+    source: 'all'
   })
 
   // Simulated calendar month: September 2026
@@ -60,10 +65,18 @@ export const MeetingsPage: React.FC = () => {
   const { data: meetings = [], isLoading } = useMeetings(filters)
   const { data: clients = [] } = useClients()
 
+  // Filter meetings by source if selected
+  const filteredMeetings = meetings.filter((m) => {
+    if (filters.source === 'cal_com') return Boolean(m.calComBookingUid)
+    if (filters.source === 'google_calendar') return Boolean(m.gcalEventId)
+    if (filters.source === 'manual') return !m.calComBookingUid && !m.gcalEventId
+    return true
+  })
+
   // Auto-open meeting if meetingId query param exists
   React.useEffect(() => {
     if (initialMeetingId && meetings.length > 0) {
-      const match = meetings.find(m => m.id === initialMeetingId)
+      const match = meetings.find((m) => m.id === initialMeetingId)
       if (match) {
         setSelectedMeeting(match)
         setDetailModalOpen(true)
@@ -74,6 +87,51 @@ export const MeetingsPage: React.FC = () => {
   const handleOpenMeeting = (m: Meeting) => {
     setSelectedMeeting(m)
     setDetailModalOpen(true)
+  }
+
+  const handleExportCSV = () => {
+    if (filteredMeetings.length === 0) {
+      toast.error('No meetings to export.')
+      return
+    }
+
+    const headers = [
+      'Date & Time',
+      'Client',
+      'Meeting Title',
+      'Type',
+      'Duration (Mins)',
+      'Location',
+      'Transcript Status',
+      'Cal.com Booking UID',
+      'Google Calendar Event ID',
+      'Attendees Count'
+    ]
+
+    const rows = filteredMeetings.map((m) => [
+      `"${new Date(m.date).toLocaleString()}"`,
+      `"${m.clientName}"`,
+      `"${m.title}"`,
+      `"${m.type}"`,
+      m.durationMinutes,
+      `"${m.location}"`,
+      m.transcriptStatus,
+      `"${m.calComBookingUid || ''}"`,
+      `"${m.gcalEventId || ''}"`,
+      m.attendees.length
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `PR_Agency_Meetings_${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast.success(`Exported ${filteredMeetings.length} meetings to CSV`)
   }
 
   // Generate calendar days for current month
@@ -91,13 +149,9 @@ export const MeetingsPage: React.FC = () => {
   }
 
   const getMeetingsForDay = (day: number) => {
-    return meetings.filter(m => {
+    return filteredMeetings.filter((m) => {
       const d = new Date(m.date)
-      return (
-        d.getFullYear() === year &&
-        d.getMonth() === month &&
-        d.getDate() === day
-      )
+      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day
     })
   }
 
@@ -107,13 +161,13 @@ export const MeetingsPage: React.FC = () => {
         title="Meetings & Editorial Sessions"
         description="Calendar schedule and historical archive of client strategy calls, press rehearsals, and post-launch reviews with linked transcripts."
         badge={
-          <Badge variant="outline" className="text-xs font-mono">
-            {meetings.length} Scheduled
+          <Badge variant="outline" className="text-xs font-mono bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800">
+            {filteredMeetings.length} Scheduled
           </Badge>
         }
       >
         {/* Toggle List vs Calendar */}
-        <div className="flex items-center border border-border/80 rounded-lg p-0.5 bg-muted/40 mr-2">
+        <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800/60 mr-2">
           <Button
             size="xs"
             variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -137,7 +191,7 @@ export const MeetingsPage: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setFormModalOpen(true)}
-          className="text-xs gap-1.5 h-8 bg-primary shadow-sm"
+          className="text-xs gap-1.5 h-8 bg-sky-500 hover:bg-sky-600 text-white shadow-xs"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Schedule Meeting</span>
@@ -145,16 +199,16 @@ export const MeetingsPage: React.FC = () => {
       </PageHeader>
 
       {/* Filter Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card p-3 rounded-xl border border-border/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div className="flex flex-1 flex-wrap items-center gap-2.5">
           {/* Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
               placeholder="Search meetings, attendees, agendas..."
               value={filters.search || ''}
-              onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="pl-8 h-8 text-xs bg-background"
+              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+              className="pl-8 h-8 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
             />
           </div>
 
@@ -162,14 +216,14 @@ export const MeetingsPage: React.FC = () => {
           <div className="w-[160px]">
             <Select
               value={filters.clientId || 'all'}
-              onValueChange={val => setFilters(prev => ({ ...prev, clientId: val }))}
+              onValueChange={(val) => setFilters((prev) => ({ ...prev, clientId: val }))}
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
                 <SelectValue placeholder="All Clients" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Clients</SelectItem>
-                {clients.map(c => (
+                {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -182,14 +236,14 @@ export const MeetingsPage: React.FC = () => {
           <div className="w-[160px]">
             <Select
               value={filters.transcriptStatus || 'all'}
-              onValueChange={val =>
-                setFilters(prev => ({
+              onValueChange={(val) =>
+                setFilters((prev) => ({
                   ...prev,
                   transcriptStatus: val as MeetingFilters['transcriptStatus']
                 }))
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
                 <SelectValue placeholder="Transcript Status" />
               </SelectTrigger>
               <SelectContent>
@@ -200,17 +254,52 @@ export const MeetingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Integration Source Filter */}
+          <div className="w-[160px]">
+            <Select
+              value={filters.source || 'all'}
+              onValueChange={(val) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  source: val as MeetingFilters['source']
+                }))
+              }
+            >
+              <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
+                <SelectValue placeholder="Calendar Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="cal_com">Cal.com Bookings</SelectItem>
+                <SelectItem value="google_calendar">Google Calendar Synced</SelectItem>
+                <SelectItem value="manual">Manual Entry</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="text-xs text-muted-foreground font-mono self-end sm:self-auto shrink-0">
-          Showing {meetings.length} meetings
+        <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+          <span className="text-xs text-slate-500 font-mono">
+            Showing {filteredMeetings.length} meetings
+          </span>
+
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleExportCSV}
+            className="h-8 text-xs gap-1 border-slate-200 dark:border-slate-700"
+          >
+            <Download className="h-3.5 w-3.5 text-slate-500" />
+            <span>Export CSV</span>
+          </Button>
         </div>
       </div>
 
       {/* Main Content Area */}
       {viewMode === 'list' ? (
         /* List View */
-        <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -218,34 +307,35 @@ export const MeetingsPage: React.FC = () => {
                 <TableHead className="w-[160px]">Client</TableHead>
                 <TableHead>Meeting Topic / Title</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Source / Sync</TableHead>
                 <TableHead>Transcript Status</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead className="text-right">Attendees</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {meetings.length === 0 ? (
+              {filteredMeetings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-xs text-slate-500">
                     No meetings found matching your filter criteria.
                   </TableCell>
                 </TableRow>
               ) : (
-                meetings.map(m => (
+                filteredMeetings.map((m) => (
                   <TableRow
                     key={m.id}
                     onClick={() => handleOpenMeeting(m)}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors group"
+                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                   >
                     <TableCell className="font-mono text-xs">
-                      <div className="font-semibold text-foreground">
+                      <div className="font-semibold text-slate-900 dark:text-white">
                         {new Date(m.date).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric'
                         })}
                       </div>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-[11px] text-slate-500">
                         {new Date(m.date).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -255,18 +345,18 @@ export const MeetingsPage: React.FC = () => {
                     </TableCell>
 
                     <TableCell>
-                      <span className="text-xs font-semibold text-foreground">
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white">
                         {m.clientName}
                       </span>
                     </TableCell>
 
                     <TableCell>
                       <div className="space-y-0.5">
-                        <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                           {m.title}
                         </span>
                         {m.notes && (
-                          <p className="text-[11px] text-muted-foreground truncate max-w-md">
+                          <p className="text-[11px] text-slate-500 truncate max-w-md">
                             {m.notes}
                           </p>
                         )}
@@ -280,18 +370,32 @@ export const MeetingsPage: React.FC = () => {
                     </TableCell>
 
                     <TableCell>
+                      {m.calComBookingUid ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-sky-600 dark:text-sky-400">
+                          <CalendarCheck className="h-3 w-3" /> Cal.com
+                        </span>
+                      ) : m.gcalEventId ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-indigo-600 dark:text-indigo-400">
+                          <CalendarIcon className="h-3 w-3" /> GCal
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Manual</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
                       <TranscriptStatusBadge status={m.transcriptStatus} />
                     </TableCell>
 
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-slate-500">
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
                         {m.location}
                       </span>
                     </TableCell>
 
-                    <TableCell className="text-right text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{m.attendees.length}</span> people
+                    <TableCell className="text-right text-xs text-slate-500">
+                      <span className="font-medium text-slate-900 dark:text-white">{m.attendees.length}</span> people
                     </TableCell>
                   </TableRow>
                 ))
@@ -301,15 +405,15 @@ export const MeetingsPage: React.FC = () => {
         </div>
       ) : (
         /* Calendar View */
-        <div className="rounded-xl border border-border/80 bg-card p-4 space-y-4 shadow-2xs">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4 shadow-2xs">
           {/* Calendar Header Navigation */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-base font-semibold text-foreground">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                 {calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </h3>
               <Badge variant="secondary" className="text-xs font-normal">
-                {meetings.length} Events
+                {filteredMeetings.length} Events
               </Badge>
             </div>
 
@@ -318,9 +422,7 @@ export const MeetingsPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() =>
-                  setCalendarMonth(new Date(year, month - 1, 1))
-                }
+                onClick={() => setCalendarMonth(new Date(year, month - 1, 1))}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -336,9 +438,7 @@ export const MeetingsPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() =>
-                  setCalendarMonth(new Date(year, month + 1, 1))
-                }
+                onClick={() => setCalendarMonth(new Date(year, month + 1, 1))}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -346,7 +446,7 @@ export const MeetingsPage: React.FC = () => {
           </div>
 
           {/* Days of week header */}
-          <div className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground border-b pb-2">
+          <div className="grid grid-cols-7 text-center text-xs font-semibold text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-2">
             <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
@@ -363,7 +463,7 @@ export const MeetingsPage: React.FC = () => {
                 return (
                   <div
                     key={`empty-${idx}`}
-                    className="h-28 rounded-lg bg-muted/10 border border-transparent p-1"
+                    className="h-28 rounded-lg bg-slate-50/50 dark:bg-slate-800/10 border border-transparent p-1"
                   />
                 )
               }
@@ -376,22 +476,22 @@ export const MeetingsPage: React.FC = () => {
                   key={`day-${day}`}
                   className={`h-28 rounded-lg border p-1.5 flex flex-col transition-colors overflow-hidden ${
                     isToday
-                      ? 'border-primary/60 bg-primary/5'
-                      : 'border-border/60 bg-card hover:bg-muted/20'
+                      ? 'border-sky-500/60 bg-sky-50/20 dark:bg-sky-950/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span
                       className={`h-5 w-5 rounded-full flex items-center justify-center font-mono text-[11px] ${
                         isToday
-                          ? 'bg-primary text-primary-foreground font-bold'
-                          : 'text-muted-foreground'
+                          ? 'bg-sky-500 text-white font-bold'
+                          : 'text-slate-500'
                       }`}
                     >
                       {day}
                     </span>
                     {dayMeetings.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground font-mono">
+                      <span className="text-[10px] text-slate-400 font-mono">
                         {dayMeetings.length}
                       </span>
                     )}
@@ -399,21 +499,21 @@ export const MeetingsPage: React.FC = () => {
 
                   {/* Meetings Pills inside calendar tile */}
                   <div className="flex-1 overflow-y-auto space-y-1">
-                    {dayMeetings.slice(0, 2).map(m => (
+                    {dayMeetings.slice(0, 2).map((m) => (
                       <div
                         key={m.id}
                         onClick={() => handleOpenMeeting(m)}
-                        className="rounded px-1.5 py-0.5 text-[10px] truncate bg-primary/10 hover:bg-primary/20 text-foreground cursor-pointer font-medium border border-primary/20"
+                        className="rounded px-1.5 py-0.5 text-[10px] truncate bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-slate-800 dark:text-slate-200 cursor-pointer font-medium border border-sky-200 dark:border-sky-800"
                         title={`${m.clientName}: ${m.title}`}
                       >
-                        <span className="text-primary font-bold mr-1">
+                        <span className="text-sky-600 dark:text-sky-400 font-bold mr-1">
                           {new Date(m.date).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                         </span>
                         <span>{m.clientName}</span>
                       </div>
                     ))}
                     {dayMeetings.length > 2 && (
-                      <p className="text-[9px] text-muted-foreground font-mono pl-1">
+                      <p className="text-[9px] text-slate-400 font-mono pl-1">
                         +{dayMeetings.length - 2} more
                       </p>
                     )}

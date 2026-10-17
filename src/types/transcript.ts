@@ -1,3 +1,6 @@
+export type TranscriptSource = 'read_ai' | 'manual'
+export type SegmentSentiment = 'positive' | 'neutral' | 'urgent'
+
 export interface TranscriptSegment {
   id: string
   speaker: string
@@ -6,7 +9,7 @@ export interface TranscriptSegment {
   isClient: boolean
   timestamp: string // e.g. "04:12"
   text: string
-  sentiment?: 'positive' | 'neutral' | 'urgent'
+  sentiment?: SegmentSentiment
 }
 
 export interface TranscriptPart {
@@ -17,9 +20,17 @@ export interface TranscriptPart {
   segments: TranscriptSegment[]
 }
 
+export interface TranscriptActionItem {
+  id: string
+  task: string
+  assignee: string
+  completed: boolean
+}
+
 export interface Transcript {
   id: string
-  meetingId: string
+  meetingId?: string
+  meetingTitle?: string
   clientId: string
   clientName: string
   title: string
@@ -28,13 +39,16 @@ export interface Transcript {
   participants: string[]
   parts: TranscriptPart[]
   keyTakeaways: string[]
-  actionItems: { id: string; task: string; assignee: string; completed: boolean }[]
+  actionItems: TranscriptActionItem[]
   hasAttachment?: boolean
+  source?: TranscriptSource
+  externalId?: string
 }
 
 export interface TranscriptFilters {
   search?: string
   clientId?: string | 'all'
+  source?: TranscriptSource | 'all'
   startDate?: string
   endDate?: string
   hasAttachment?: boolean | 'all'

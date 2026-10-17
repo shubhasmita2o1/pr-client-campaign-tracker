@@ -1,15 +1,21 @@
 import React, { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { CmdKModal } from './CmdKModal'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
+import { useAuth } from '@/contexts/AuthContext'
 
 export const AppLayout: React.FC = () => {
+  const { isAuthenticated } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground font-sans">

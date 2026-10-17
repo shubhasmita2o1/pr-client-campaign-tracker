@@ -1,5 +1,5 @@
-import { Transcript, TranscriptFilters } from '../types/transcript'
-import { mockTranscripts } from '../data/mockTranscripts'
+import { Transcript, TranscriptFilters, TranscriptActionItem } from '../types/transcript'
+import { mockTranscripts } from '../mock/mockTranscripts'
 
 const STORAGE_KEY = 'pr_tracker_transcripts'
 
@@ -45,6 +45,10 @@ export const transcriptService = {
       result = result.filter(tr => tr.clientId === filters.clientId)
     }
 
+    if (filters.source && filters.source !== 'all') {
+      result = result.filter(tr => tr.source === filters.source)
+    }
+
     if (filters.hasAttachment !== undefined && filters.hasAttachment !== 'all') {
       result = result.filter(tr => Boolean(tr.hasAttachment) === Boolean(filters.hasAttachment))
     }
@@ -74,5 +78,38 @@ export const transcriptService = {
     transcriptsState = [newTranscript, ...transcriptsState]
     persist()
     return newTranscript
+  },
+
+  async toggleActionItem(transcriptId: string, actionItemId: string): Promise<Transcript> {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    const transcript = transcriptsState.find(tr => tr.id === transcriptId)
+    if (!transcript) throw new Error('Transcript not found')
+
+    transcript.actionItems = transcript.actionItems.map(item =>
+      item.id === actionItemId ? { ...item, completed: !item.completed } : item
+    )
+    persist()
+    return transcript
+  },
+
+  async addActionItem(transcriptId: string, item: Omit<TranscriptActionItem, 'id' | 'completed'>): Promise<Transcript> {
+    await new Promise(resolve => setTimeout(resolve, 120))
+    const transcript = transcriptsState.find(tr => tr.id === transcriptId)
+    if (!transcript) throw new Error('Transcript not found')
+
+    const newItem: TranscriptActionItem = {
+      id: `act-${Date.now()}`,
+      ...item,
+      completed: false
+    }
+    transcript.actionItems = [...transcript.actionItems, newItem]
+    persist()
+    return transcript
+  },
+
+  async deleteTranscript(id: string): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 150))
+    transcriptsState = transcriptsState.filter(tr => tr.id !== id)
+    persist()
   }
 }

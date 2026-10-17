@@ -21,6 +21,7 @@ export interface ProposalDocument {
   fileSize: string
   uploadedAt: string
   url: string
+  filePath?: string
   type: 'proposal' | 'contract' | 'brief' | 'report'
   status: 'signed' | 'review' | 'draft'
 }
@@ -47,6 +48,7 @@ export interface ClientFilters {
   search?: string
   status?: ClientStatus | 'all'
   ownerId?: string | 'all'
+  tier?: 'Enterprise' | 'Growth' | 'Boutique' | 'all'
   month?: string | 'all' // e.g., '2026-01'
   industry?: string | 'all'
 }
@@ -60,8 +62,10 @@ export interface ClientFormData {
   ownerId: string
   primaryContactName: string
   primaryContactEmail: string
+  primaryContactPhone?: string
   primaryContactTitle: string
   retainerMonthly: number
+  joinedDate?: string
   website: string
   tags: string[]
   notes?: string

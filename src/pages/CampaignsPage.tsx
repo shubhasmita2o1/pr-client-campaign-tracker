@@ -40,7 +40,8 @@ import {
   Sparkles,
   BarChart2,
   Calendar,
-  Layers
+  Layers,
+  Download
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -98,6 +99,59 @@ export const CampaignsPage: React.FC = () => {
     }
   }
 
+  const handleExportCSV = () => {
+    if (campaigns.length === 0) {
+      toast.error('No campaign records to export.')
+      return
+    }
+
+    const headers = [
+      'Campaign Title',
+      'Client Name',
+      'Type',
+      'Status',
+      'Start Date',
+      'End Date',
+      'PR Lead',
+      'Total Pitched',
+      'Total Impressions',
+      'Total Replies',
+      'Coverage Secured'
+    ]
+
+    const rows = campaigns.map((camp) => {
+      const totalPitched = camp.metrics.reduce((s, m) => s + m.pitched, 0)
+      const totalImpressions = camp.metrics.reduce((s, m) => s + m.impressions, 0)
+      const totalReplies = camp.metrics.reduce((s, m) => s + m.replies, 0)
+      const totalCoverage = camp.metrics.reduce((s, m) => s + m.coverageSecured, 0)
+
+      return [
+        `"${camp.title.replace(/"/g, '""')}"`,
+        `"${(camp.clientName || 'Multi-Client').replace(/"/g, '""')}"`,
+        `"${camp.type}"`,
+        camp.status,
+        camp.startDate,
+        camp.endDate,
+        `"${camp.owner}"`,
+        totalPitched,
+        totalImpressions,
+        totalReplies,
+        totalCoverage
+      ]
+    })
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `PR_Campaigns_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success(`Exported ${campaigns.length} campaigns to CSV.`)
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -109,14 +163,25 @@ export const CampaignsPage: React.FC = () => {
           </Badge>
         }
       >
-        <Button
-          size="sm"
-          onClick={() => setCreateModalOpen(true)}
-          className="text-xs gap-1.5 h-8 bg-primary shadow-sm"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New Campaign</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="text-xs gap-1.5 h-8 bg-card shadow-2xs"
+          >
+            <Download className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Export CSV</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setCreateModalOpen(true)}
+            className="text-xs gap-1.5 h-8 bg-primary shadow-sm"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>New Campaign</span>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Filter Bar */}

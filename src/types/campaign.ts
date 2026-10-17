@@ -13,12 +13,12 @@ export interface CampaignMetricRow {
 }
 
 export interface ExtractedMetricResult {
-  impressions?: number
-  pitched?: number
-  opens?: number
-  clicks?: number
-  replies?: number
-  coverageSecured?: number
+  impressions?: number | null
+  pitched?: number | null
+  opens?: number | null
+  clicks?: number | null
+  replies?: number | null
+  coverageSecured?: number | null
   confidenceScore: number // 0 - 100
   notes: string
   detectedChannel?: string
@@ -27,6 +27,7 @@ export interface ExtractedMetricResult {
 export interface CampaignScreenshot {
   id: string
   fileName: string
+  filePath?: string
   thumbnailUrl: string
   uploadedAt: string
   fileSize: string
@@ -55,4 +56,17 @@ export interface CampaignFilters {
   status?: CampaignStatus | 'all'
   clientId?: string | 'all'
   type?: string | 'all'
+}
+
+export interface CampaignFormData {
+  title: string
+  clientId: string
+  status: CampaignStatus
+  type: string
+  startDate: string
+  endDate: string
+  owner: string
+  targetOutlets: string[]
+  copyText: string
+  tags: string[]
 }

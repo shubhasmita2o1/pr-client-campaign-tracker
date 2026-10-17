@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useLocation, Link, useNavigate } from 'react-router-dom'
 import { ThemeToggle } from './ThemeToggle'
 import { Button } from '@/components/ui/button'
 import {
@@ -6,70 +7,252 @@ import {
   Plus,
   Bell,
   Sparkles,
-  Menu
+  Menu,
+  ChevronRight,
+  FileSpreadsheet,
+  Calendar,
+  UserPlus,
+  Image as ImageIcon,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { useAuth } from '@/contexts/AuthContext'
+import { mockActivities } from '@/mock'
 
 interface HeaderProps {
   onOpenSearch: () => void
   onToggleSidebarMobile: () => void
   onOpenNewClient: () => void
+  onOpenNewMeeting?: () => void
+  onOpenScreenshotExtractor?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onToggleSidebarMobile,
-  onOpenNewClient
+  onOpenNewClient,
+  onOpenNewMeeting,
+  onOpenScreenshotExtractor
 }) => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { user, role, switchRole } = useAuth()
+  const [unreadNotifications, setUnreadNotifications] = useState(3)
+
+  // Derive breadcrumb path
+  const pathParts = location.pathname.split('/').filter(Boolean)
+  const getBreadcrumbs = () => {
+    if (pathParts.length === 0) return [{ label: 'Dashboard', path: '/' }]
+    const crumbs = [{ label: 'Dashboard', path: '/' }]
+    let curPath = ''
+    for (const part of pathParts) {
+      curPath += `/${part}`
+      const capitalized = part.charAt(0).toUpperCase() + part.slice(1).replace('-', ' ')
+      crumbs.push({ label: capitalized, path: curPath })
+    }
+    return crumbs
+  }
+
+  const breadcrumbs = getBreadcrumbs()
+
   return (
-    <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-border/70 bg-background/85 px-4 backdrop-blur-md">
-      {/* Left: Mobile menu button & quick search trigger */}
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-4 backdrop-blur-md">
+      {/* Left: Mobile menu & Breadcrumb Navigation */}
+      <div className="flex items-center gap-3 min-w-0">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-8 w-8 text-muted-foreground"
+          className="md:hidden h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           onClick={onToggleSidebarMobile}
         >
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
+          <span className="sr-only">Toggle navigation</span>
         </Button>
 
-        {/* Global search trigger bar */}
+        {/* Breadcrumbs */}
+        <nav className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+          {breadcrumbs.map((crumb, idx) => {
+            const isLast = idx === breadcrumbs.length - 1
+            return (
+              <React.Fragment key={crumb.path}>
+                {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600 shrink-0" />}
+                {isLast ? (
+                  <span className="font-semibold text-slate-900 dark:text-white truncate">
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    to={crumb.path}
+                    className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors truncate"
+                  >
+                    {crumb.label}
+                  </Link>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Center: Global Search Bar */}
+      <div className="hidden lg:flex items-center max-w-sm w-full mx-4">
         <button
           onClick={onOpenSearch}
-          className="hidden sm:flex items-center gap-2 rounded-lg border border-border/80 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 transition-all w-64 md:w-80 group"
+          className="flex w-full items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all justify-between group"
         >
-          <Search className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
-          <span className="truncate">Search clients, transcripts, campaigns...</span>
-          <kbd className="ml-auto rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground shadow-2xs">
+          <div className="flex items-center gap-2">
+            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-sky-500" />
+            <span className="truncate">Search clients, transcripts, campaigns...</span>
+          </div>
+          <kbd className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
             ⌘K
           </kbd>
         </button>
       </div>
 
-      {/* Right actions */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Quick New Client Action */}
-        <Button
-          onClick={onOpenNewClient}
-          size="sm"
-          className="h-8 gap-1.5 text-xs font-medium bg-primary hover:bg-primary/90 shadow-sm"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden xs:inline">New Client</span>
-        </Button>
+      {/* Right Actions: Quick Actions, Notifications, Role Badge, Theme */}
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        {/* Quick Actions Dropdown Button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white shadow-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Quick Actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+              Agency Quick Actions
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={onOpenNewClient}
+              className="text-xs cursor-pointer flex items-center"
+            >
+              <UserPlus className="h-3.5 w-3.5 mr-2 text-sky-500" />
+              Add New Client
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (onOpenNewMeeting) onOpenNewMeeting()
+                else navigate('/meetings')
+              }}
+              className="text-xs cursor-pointer flex items-center"
+            >
+              <Calendar className="h-3.5 w-3.5 mr-2 text-indigo-500" />
+              Schedule Meeting
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (onOpenScreenshotExtractor) onOpenScreenshotExtractor()
+                else navigate('/campaigns')
+              }}
+              className="text-xs cursor-pointer flex items-center"
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-2 text-amber-500" />
+              Upload Campaign Screenshot (AI)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/imports')}
+              className="text-xs cursor-pointer flex items-center"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-2 text-emerald-500" />
+              Import XLSX Data
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* System Activity Notification Icon */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 relative text-muted-foreground hover:text-foreground"
-          onClick={onOpenSearch}
-          title="Search notifications & feed"
+        {/* Notifications Center Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 relative text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              title="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-sky-500 ring-2 ring-white dark:ring-slate-900" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 p-0 shadow-lg">
+            <div className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                Notifications
+              </span>
+              {unreadNotifications > 0 && (
+                <button
+                  onClick={() => setUnreadNotifications(0)}
+                  className="text-[11px] text-sky-600 hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+              {mockActivities.slice(0, 4).map((act) => (
+                <div
+                  key={act.id}
+                  onClick={() => {
+                    if (act.targetType === 'campaign') navigate(`/campaigns/${act.targetId}`)
+                    else if (act.targetType === 'client') navigate(`/clients/${act.targetId}`)
+                    else if (act.targetType === 'meeting') navigate('/meetings')
+                    else if (act.targetType === 'transcript') navigate('/transcripts')
+                  }}
+                  className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-medium text-slate-900 dark:text-white">
+                      {act.title}
+                    </span>
+                    <span className="text-[10px] text-slate-400 shrink-0">
+                      {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                    {act.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="p-2 border-t border-slate-100 dark:border-slate-800 text-center">
+              <button
+                onClick={onOpenSearch}
+                className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium"
+              >
+                View all activity feed &rarr;
+              </button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Active Role Quick Toggle Badge */}
+        <button
+          onClick={() => switchRole(role === 'admin' ? 'member' : 'admin')}
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
+          title="Click to toggle between Admin and Member roles for UI testing"
         >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-        </Button>
+          <ShieldCheck className="h-3 w-3 text-sky-500" />
+          <span className="uppercase text-[10px] text-slate-500">Role:</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+            {role}
+          </span>
+        </button>
 
         {/* Theme Toggle */}
         <ThemeToggle />

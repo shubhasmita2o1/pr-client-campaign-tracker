@@ -31,6 +31,10 @@ export interface Meeting {
   notes?: string
   location: string
   agenda?: string[]
+  // Integration IDs matching backend
+  calComBookingUid?: string
+  calendlyEventId?: string
+  gcalEventId?: string
 }
 
 export interface MeetingFilters {
@@ -38,6 +42,24 @@ export interface MeetingFilters {
   clientId?: string | 'all'
   transcriptStatus?: TranscriptStatus | 'all'
   type?: string | 'all'
+  source?: 'all' | 'cal_com' | 'google_calendar' | 'manual'
   startDate?: string
   endDate?: string
+}
+
+export interface MeetingFormData {
+  clientId: string
+  title: string
+  date: string
+  durationMinutes: number
+  type: MeetingType
+  location: string
+  agenda: string[]
+  notes?: string
+  attendees: Array<{
+    name: string
+    email: string
+    role: string
+    isClient: boolean
+  }>
 }
