@@ -14,15 +14,16 @@ export const useImports = () => {
       file,
       onProgress
     }: {
-      file: { name: string; size: number }
+      file: { name: string; size: number; blob?: Blob } | File
       onProgress?: (progress: number, step: string) => void
-    }) => importService.runMockImport(file, onProgress),
+    }) => importService.runImport(file, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches'] })
       queryClient.invalidateQueries({ queryKey: ['clients'] })
       queryClient.invalidateQueries({ queryKey: ['meetings'] })
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       queryClient.invalidateQueries({ queryKey: ['quick_stats'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     }
   })
 

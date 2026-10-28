@@ -16,8 +16,12 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  LogOut,
+  Settings,
+  UserCheck
 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +31,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/contexts/AuthContext'
-import { mockActivities } from '@/mock'
+import { useDashboard } from '@/hooks/useDashboard'
 
 interface HeaderProps {
   onOpenSearch: () => void
@@ -46,8 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, role, switchRole } = useAuth()
-  const [unreadNotifications, setUnreadNotifications] = useState(3)
+  const { user, role, switchRole, logout } = useAuth()
+  const { recentActivities } = useDashboard()
+  const [unreadNotifications, setUnreadNotifications] = useState(2)
 
   // Derive breadcrumb path
   const pathParts = location.pathname.split('/').filter(Boolean)
@@ -64,6 +69,11 @@ export const Header: React.FC<HeaderProps> = ({
   }
 
   const breadcrumbs = getBreadcrumbs()
+
+  const handleSignOut = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-4 backdrop-blur-md">
@@ -120,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Right Actions: Quick Actions, Notifications, Role Badge, Theme */}
+      {/* Right Actions: Quick Actions, Notifications, Role Badge, Theme, User Avatar & Logout */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {/* Quick Actions Dropdown Button */}
         <DropdownMenu>
@@ -205,30 +215,36 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-              {mockActivities.slice(0, 4).map((act) => (
-                <div
-                  key={act.id}
-                  onClick={() => {
-                    if (act.targetType === 'campaign') navigate(`/campaigns/${act.targetId}`)
-                    else if (act.targetType === 'client') navigate(`/clients/${act.targetId}`)
-                    else if (act.targetType === 'meeting') navigate('/meetings')
-                    else if (act.targetType === 'transcript') navigate('/transcripts')
-                  }}
-                  className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-medium text-slate-900 dark:text-white">
-                      {act.title}
-                    </span>
-                    <span className="text-[10px] text-slate-400 shrink-0">
-                      {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+              {recentActivities && recentActivities.length > 0 ? (
+                recentActivities.slice(0, 4).map((act) => (
+                  <div
+                    key={act.id}
+                    onClick={() => {
+                      if (act.targetType === 'campaign') navigate(`/campaigns/${act.targetId}`)
+                      else if (act.targetType === 'client') navigate(`/clients/${act.targetId}`)
+                      else if (act.targetType === 'meeting') navigate('/meetings')
+                      else if (act.targetType === 'transcript') navigate('/transcripts')
+                    }}
+                    className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
+                        {act.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400 shrink-0">
+                        {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                      {act.description}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
-                    {act.description}
-                  </p>
+                ))
+              ) : (
+                <div className="p-4 text-center text-xs text-slate-400">
+                  No new notifications
                 </div>
-              ))}
+              )}
             </div>
             <div className="p-2 border-t border-slate-100 dark:border-slate-800 text-center">
               <button
@@ -245,7 +261,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={() => switchRole(role === 'admin' ? 'member' : 'admin')}
           className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
-          title="Click to toggle between Admin and Member roles for UI testing"
+          title="Click to toggle between Admin and Member roles"
         >
           <ShieldCheck className="h-3 w-3 text-sky-500" />
           <span className="uppercase text-[10px] text-slate-500">Role:</span>
@@ -256,6 +272,56 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Theme Toggle */}
         <ThemeToggle />
+
+        {/* Top Bar User Avatar + Logout Dropdown (Requirement 2) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              title="Account &amp; Session"
+            >
+              <Avatar className="h-7 w-7 ring-1 ring-slate-200 dark:ring-slate-700">
+                <AvatarImage src={user?.avatarUrl} alt={user?.fullName || 'User'} />
+                <AvatarFallback className="text-[11px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                  {user?.fullName?.slice(0, 2).toUpperCase() || 'PR'}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="font-semibold text-xs text-slate-900 dark:text-white truncate">
+                {user?.fullName || 'PR Team Member'}
+              </div>
+              <div className="text-[11px] font-normal text-slate-500 truncate">
+                {user?.email || 'member@prestige-pr.com'}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => switchRole(role === 'admin' ? 'member' : 'admin')}
+              className="text-xs cursor-pointer"
+            >
+              <UserCheck className="h-3.5 w-3.5 mr-2 text-sky-500" />
+              Switch to {role === 'admin' ? 'Member' : 'Admin'} Role
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => navigate('/settings')}
+              className="text-xs cursor-pointer"
+            >
+              <Settings className="h-3.5 w-3.5 mr-2 text-slate-400" />
+              Agency Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-xs text-red-600 dark:text-red-400 cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5 mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

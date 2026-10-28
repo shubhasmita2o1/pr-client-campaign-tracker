@@ -5,13 +5,30 @@ import { Header } from './Header'
 import { CmdKModal } from './CmdKModal'
 import { ClientFormModal } from '@/components/clients/ClientFormModal'
 import { useAuth } from '@/contexts/AuthContext'
+import { Sparkles } from 'lucide-react'
 
 export const AppLayout: React.FC = () => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
+  // Show a clean loading screen while verifying Supabase session
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/25 animate-pulse">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Connecting to Supabase...
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -58,18 +75,20 @@ export const AppLayout: React.FC = () => {
           onOpenNewClient={() => setNewClientOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <Outlet />
-          </div>
+        {/* Scrollable Page Body */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 max-w-7xl w-full mx-auto">
+          <Outlet />
         </main>
       </div>
 
-      {/* Global Cmd+K Search Modal */}
+      {/* Global Command Palette / Search Dialog */}
       <CmdKModal open={searchOpen} onOpenChange={setSearchOpen} />
 
-      {/* Quick New Client Modal */}
-      <ClientFormModal open={newClientOpen} onOpenChange={setNewClientOpen} />
+      {/* Quick Create Client Modal */}
+      <ClientFormModal
+        open={newClientOpen}
+        onOpenChange={setNewClientOpen}
+      />
     </div>
   )
 }

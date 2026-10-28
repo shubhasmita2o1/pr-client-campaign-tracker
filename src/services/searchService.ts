@@ -1,10 +1,11 @@
-import { GlobalSearchResult } from '../types/common'
 import { clientService } from './clientService'
 import { meetingService } from './meetingService'
 import { transcriptService } from './transcriptService'
 import { campaignService } from './campaignService'
+import type { GlobalSearchResult } from '@/types/common'
 
 export const searchService = {
+  // Global search across clients, meetings, transcripts (including speech text), and campaigns
   async globalSearch(query: string): Promise<GlobalSearchResult> {
     if (!query || query.trim() === '') {
       return { clients: [], meetings: [], transcripts: [], campaigns: [] }
@@ -12,32 +13,15 @@ export const searchService = {
 
     const q = query.toLowerCase().trim()
 
-    // Query all entities concurrently
+    // Query all entities concurrently through service layer
     const [allClients, allMeetings, allTranscripts, allCampaigns] = await Promise.all([
-      clientService.getClients(),
-      meetingService.getMeetings(),
-      transcriptService.getTranscripts(),
-      campaignService.getCampaigns()
+      clientService.getClients({ search: q }),
+      meetingService.getMeetings({ search: q }),
+      transcriptService.getTranscripts({ search: q }),
+      campaignService.getCampaigns({ search: q })
     ])
 
-    // Filter clients
-    const matchedClients = allClients.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.company.toLowerCase().includes(q) ||
-      c.industry.toLowerCase().includes(q) ||
-      c.tags.some(t => t.toLowerCase().includes(q)) ||
-      c.owner.name.toLowerCase().includes(q)
-    )
-
-    // Filter meetings
-    const matchedMeetings = allMeetings.filter(m =>
-      m.title.toLowerCase().includes(q) ||
-      m.clientName.toLowerCase().includes(q) ||
-      m.notes?.toLowerCase().includes(q) ||
-      m.attendees.some(a => a.name.toLowerCase().includes(q))
-    )
-
-    // Filter transcripts and extract matching snippet
+    // Find snippet matches within transcript parts and segments
     const matchedTranscripts: GlobalSearchResult['transcripts'] = []
     for (const tr of allTranscripts) {
       const inTitle = tr.title.toLowerCase().includes(q)
@@ -59,25 +43,17 @@ export const searchService = {
       if (inTitle || inClient || foundSnippet) {
         matchedTranscripts.push({
           transcript: tr,
-          matchingSegmentText: foundSnippet || tr.keyTakeaways[0] || '',
+          matchingSegmentText: foundSnippet || tr.keyTakeaways[0] || tr.title,
           matchingPartNumber: partNumber
         })
       }
     }
 
-    // Filter campaigns
-    const matchedCampaigns = allCampaigns.filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      c.clientName?.toLowerCase().includes(q) ||
-      c.copyText.toLowerCase().includes(q) ||
-      c.tags.some(t => t.toLowerCase().includes(q))
-    )
-
     return {
-      clients: matchedClients,
-      meetings: matchedMeetings,
+      clients: allClients,
+      meetings: allMeetings,
       transcripts: matchedTranscripts,
-      campaigns: matchedCampaigns
+      campaigns: allCampaigns
     }
   }
 }

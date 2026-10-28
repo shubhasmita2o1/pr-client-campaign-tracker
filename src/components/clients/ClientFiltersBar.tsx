@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { ClientFilters } from '@/types/client'
-import { agencyOwners } from '@/data/mockClients'
+import { useSettings } from '@/hooks/useSettings'
 import { Search, RotateCcw, Download } from 'lucide-react'
 
 interface ClientFiltersBarProps {
@@ -27,6 +27,8 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
   filteredCount,
   onExportCSV
 }) => {
+  const { teamMembers } = useSettings()
+
   const isFiltered =
     Boolean(filters.search) ||
     filters.status !== 'all' ||
@@ -87,11 +89,19 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All PR Leads</SelectItem>
-              {agencyOwners.map((o) => (
-                <SelectItem key={o.id} value={o.id}>
-                  {o.name}
-                </SelectItem>
-              ))}
+              {teamMembers && teamMembers.length > 0 ? (
+                teamMembers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.fullName}
+                  </SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="lead-1">Elena Rostova</SelectItem>
+                  <SelectItem value="lead-2">Priya Sharma</SelectItem>
+                  <SelectItem value="lead-3">Marcus Vance</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -123,27 +133,29 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
             variant="ghost"
             size="sm"
             onClick={resetFilters}
-            className="h-8 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 px-2"
+            className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white"
           >
-            <RotateCcw className="h-3 w-3 mr-1" />
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Reset
           </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
-        <span className="text-xs text-slate-500 font-mono">
-          Showing {filteredCount} of {totalCount} clients
+      {/* Right counts & Export Action */}
+      <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 dark:text-slate-400">
+        <span>
+          Showing <strong className="text-slate-900 dark:text-white">{filteredCount}</strong> of{' '}
+          {totalCount} clients
         </span>
 
         {onExportCSV && (
           <Button
             variant="outline"
-            size="xs"
+            size="sm"
             onClick={onExportCSV}
-            className="h-8 text-xs gap-1 border-slate-200 dark:border-slate-700"
+            className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
-            <Download className="h-3.5 w-3.5 text-slate-500" />
+            <Download className="h-3.5 w-3.5 text-slate-400" />
             <span>Export CSV</span>
           </Button>
         )}

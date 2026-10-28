@@ -277,6 +277,25 @@ export const MeetingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Month Filter */}
+          <div className="w-[130px]">
+            <Select
+              value={filters.month || 'all'}
+              onValueChange={(val) => setFilters((prev) => ({ ...prev, month: val }))}
+            >
+              <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
+                <SelectValue placeholder="All Months" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Months</SelectItem>
+                <SelectItem value="2026-09">Sep 2026</SelectItem>
+                <SelectItem value="2026-08">Aug 2026</SelectItem>
+                <SelectItem value="2026-07">Jul 2026</SelectItem>
+                <SelectItem value="2026-06">Jun 2026</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">

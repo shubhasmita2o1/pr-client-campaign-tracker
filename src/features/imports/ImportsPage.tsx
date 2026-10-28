@@ -188,7 +188,7 @@ export const ImportsPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => downloadTemplate('all')}
+            onClick={() => downloadTemplate()}
             className="text-xs gap-1.5 h-8 bg-card shadow-2xs"
           >
             <Download className="h-3.5 w-3.5 text-muted-foreground" />

@@ -21,6 +21,7 @@ import {
   Columns3,
   Rows3
 } from 'lucide-react'
+import { useToggleActionItem } from '@/hooks/useTranscripts'
 import { toast } from 'sonner'
 
 interface MultiPartViewerProps {
@@ -31,11 +32,18 @@ export const MultiPartViewer: React.FC<MultiPartViewerProps> = ({ transcript }) 
   const [internalSearch, setInternalSearch] = useState('')
   const [displayMode, setDisplayMode] = useState<'tabs' | 'accordion'>('tabs')
   const [actionItems, setActionItems] = useState(transcript.actionItems)
+  const toggleMutation = useToggleActionItem()
+
+  // Sync action items if prop changes
+  React.useEffect(() => {
+    setActionItems(transcript.actionItems)
+  }, [transcript.actionItems])
 
   const toggleActionItem = (id: string) => {
     setActionItems(prev =>
       prev.map(item => (item.id === id ? { ...item, completed: !item.completed } : item))
     )
+    toggleMutation.mutate({ transcriptId: transcript.id, actionItemId: id })
   }
 
   const handleCopyTranscript = () => {

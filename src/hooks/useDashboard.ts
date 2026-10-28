@@ -15,3 +15,18 @@ export function useRecentActivities() {
     queryFn: () => dashboardService.getRecentActivities()
   })
 }
+
+export function useDashboard() {
+  const statsQuery = useQuickStats()
+  const activitiesQuery = useRecentActivities()
+
+  return {
+    stats: statsQuery.data,
+    recentActivities: activitiesQuery.data || [],
+    isLoading: statsQuery.isLoading || activitiesQuery.isLoading,
+    refetch: () => {
+      statsQuery.refetch()
+      activitiesQuery.refetch()
+    }
+  }
+}

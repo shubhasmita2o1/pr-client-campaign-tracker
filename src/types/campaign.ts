@@ -56,6 +56,7 @@ export interface CampaignFilters {
   status?: CampaignStatus | 'all'
   clientId?: string | 'all'
   type?: string | 'all'
+  month?: string | 'all' // e.g., '2026-09'
 }
 
 export interface CampaignFormData {

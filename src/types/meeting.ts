@@ -42,6 +42,7 @@ export interface MeetingFilters {
   clientId?: string | 'all'
   transcriptStatus?: TranscriptStatus | 'all'
   type?: string | 'all'
+  month?: string | 'all' // e.g., '2026-09'
   source?: 'all' | 'cal_com' | 'google_calendar' | 'manual'
   startDate?: string
   endDate?: string

@@ -1,184 +1,252 @@
 # PR Client & Campaign Tracker
 
-Internal tool for a PR agency team: client and meeting tracking, call transcripts, and outbound campaign performance (including screenshot-based metric extraction).
+A full-stack, production-ready internal platform for high-velocity PR agencies to manage client retainers, meetings, multi-part call transcripts with AI takeaways, outbound PR campaign performance with Google Gemini Vision metric extraction, proposal document storage, and historical bulk XLSX imports.
 
-> **Status:** Backend phase complete. The `src/` React app is an early prototype on mock data and will be rebuilt against the live Supabase backend next. Deploy target: Netlify.
+> **Status:** **Production Ready**. The frontend is fully wired to the live Supabase backend (Postgres, RLS, Auth, Storage, Edge Functions) using React Query and strictly typed database models. Built and configured for single-command deploy to **Netlify**.
 
-## Stack
+---
 
-| Layer | Technology |
-|-------|------------|
-| Frontend (next) | React + TypeScript + Vite |
-| Backend | Supabase (Postgres, Auth, Storage, Edge Functions) |
-| Metric extraction | Google Gemini Vision (`gemini-3.6-flash`) |
-| Scheduling | Cal.com (webhooks) |
-| Transcripts | Read AI (webhooks) |
-| Calendar | Google Calendar (webhook / sync helper) |
-| Historical import | XLSX via Edge Function |
-| Deploy | Netlify (frontend, upcoming) |
+## Tech Stack & Architecture
 
-## Project structure
+| Layer | Technology | Details |
+|---|---|---|
+| **Frontend Framework** | React 19 + TypeScript | Desktop-first, clean agency aesthetic (Radix UI primitives + Tailwind CSS) |
+| **Data Fetching & Cache** | TanStack React Query v5 | Automated cache invalidation, optimistic updates, loading skeletons |
+| **Backend & Database** | Supabase (PostgreSQL 15+) | Row Level Security (RLS), custom triggers, idempotent tables |
+| **Authentication** | Supabase Auth | Email + password team login, session persistence, automatic profile sync |
+| **Storage Buckets** | Supabase Storage | `proposals` (PDFs), `campaign-screenshots` (Images), `imports` (XLSX/CSV) |
+| **AI Metric Extraction** | Google Gemini Vision | Supabase Edge Function (`gemini-extract-metrics`) running Gemini Vision |
+| **Edge Functions** | Deno / Supabase Functions | `gemini-extract-metrics`, `xlsx-import`, `read-ai-webhook`, `cal-com-webhook`, `google-calendar-webhook` |
+| **Deployment Target** | Netlify | Zero-config deployment via `netlify.toml` and SPA `public/_redirects` |
+
+---
+
+## Key Features
+
+1. **Supabase Authentication & Team Profiles**
+   - Secure email and password login with session persistence.
+   - Profile sync trigger creates team member profiles in `public.profiles` automatically upon user creation.
+   - Route protection with redirect to `/login` for unauthenticated visitors.
+   - Header user avatar, role badge, and sign-out dropdown.
+   - Pre-configured demo quick-logins for agency leads and account specialists.
+
+2. **Client Management & Proposals**
+   - Full client directory with search, tier, status (`active`, `prospect`, `churned`), and monthly join date filters.
+   - Detailed client drawer with retainer MRR, primary contact info, meeting history, and transcript associations.
+   - Real PDF proposal and contract uploads to Supabase Storage (`proposals` bucket) with secure signed URL access.
+
+3. **Meetings & Attendee Tracking**
+   - Agenda management, attendee lists with agency/client badges, and meeting status.
+   - Direct two-way linking between meetings, clients, and recorded transcripts.
+   - Ready for automated scheduling webhooks (Cal.com and Google Calendar).
+
+4. **Multi-Part Transcripts & Full-Text Search**
+   - Multi-part call transcript viewer with speaker avatars, timestamps, and sentiment indicators (`positive`, `neutral`, `urgent`).
+   - Action item checklist with real database toggles (`transcript_action_items`).
+   - Deep search across transcript titles, key takeaways, and spoken segment dialogue.
+
+5. **Campaigns & Gemini Vision Metric Extraction**
+   - Outbound PR campaign tracking with channel-level metrics (sent, opened, clicks, replies, coverage secured).
+   - Screenshot upload to Supabase Storage (`campaign-screenshots` bucket).
+   - Instant extraction via the `gemini-extract-metrics` Edge Function powered by Google Gemini Vision.
+   - One-click metric insertion from AI extraction results into the campaign's live metrics table.
+
+6. **Historical XLSX Import**
+   - Upload multi-sheet Excel workbooks (`.xlsx`) or `.csv` files to the `imports` Supabase storage bucket.
+   - Calls the `xlsx-import` Edge Function with batch progress indicators and validation error logging.
+   - Downloadable CSV template for client and campaign seeding.
+
+7. **Executive Dashboard**
+   - Real-time KPIs calculated directly from database tables: Active Clients, Monthly Retainer MRR, Win Rate, and Average Response Rate.
+   - Live activity feed aggregating recent webhook events, proposal uploads, meetings, and campaign updates.
+   - Global search bar indexing clients, meetings, campaigns, and spoken transcript dialogue.
+
+---
+
+## Project Structure
 
 ```
 pr-client-campaign-tracker/
-├── src/                                      # Prototype frontend (mock data — to be rebuilt)
+├── public/
+│   ├── _redirects                            # Netlify SPA rewrite rule (/* -> /index.html 200)
+│   └── favicon.svg
+├── src/
+│   ├── components/
+│   │   ├── campaigns/                        # Screenshot modal, metrics editor, campaign card
+│   │   ├── clients/                          # Client drawer, filters, proposal upload list
+│   │   ├── layout/                           # AppLayout, Sidebar, Header with user dropdown
+│   │   ├── shared/                           # ErrorBoundary, PageHeader, SearchBar, StatusBadge
+│   │   ├── transcripts/                      # MultiPartViewer, transcript details
+│   │   └── ui/                               # Radix UI primitives (Button, Dialog, Dropdown, etc.)
+│   ├── contexts/
+│   │   └── AuthContext.tsx                   # Supabase Auth provider and session synchronization
+│   ├── features/
+│   │   ├── auth/                             # LoginPage with team credentials & demo logins
+│   │   ├── dashboard/                        # KPI metrics, recent activity, quick actions
+│   │   ├── imports/                          # Historical XLSX/CSV dropzone and batch audit log
+│   │   └── settings/                         # Agency profiles and webhook integrations
+│   ├── hooks/                                # React Query hooks (useClients, useMeetings, etc.)
+│   ├── lib/
+│   │   ├── supabase.ts                       # Typed Supabase client & Storage/Edge Function helpers
+│   │   └── utils.ts                          # Formatting and class merging utilities
+│   ├── pages/                                # Route pages (Clients, Meetings, Transcripts, Campaigns)
+│   ├── services/                             # Real Supabase query/mutation service layer
+│   │   ├── clientService.ts
+│   │   ├── meetingService.ts
+│   │   ├── transcriptService.ts
+│   │   ├── campaignService.ts
+│   │   ├── importService.ts
+│   │   ├── dashboardService.ts
+│   │   └── searchService.ts
+│   ├── types/
+│   │   └── database.ts                       # Strict TypeScript database types matching Supabase schema
+│   ├── App.tsx                               # Router configuration with ErrorBoundary
+│   └── main.tsx
 ├── pr-client-campaign-tracker-backend/
-│   └── supabase/                             # Source of truth for the backend
-│       ├── config.toml
+│   └── supabase/                             # Source of truth for database and functions
 │       ├── migrations/
 │       │   ├── 20260917113532_initial_schema.sql
 │       │   ├── 20260917122034_auth_profile_trigger.sql
 │       │   ├── 20260917122124_seed_sample_data.sql
 │       │   └── 20260921134700_idempotency_and_webhook_tables.sql
 │       └── functions/
-│           ├── gemini-extract-metrics/       # Screenshot → campaign metrics
+│           ├── gemini-extract-metrics/       # Google Gemini Vision extraction
+│           ├── xlsx-import/                  # Bulk XLSX parsing
 │           ├── read-ai-webhook/              # Read AI transcript ingestion
-│           ├── cal-com-webhook/              # Cal.com booking → meetings
-│           ├── google-calendar-webhook/      # Google Calendar → meetings
-│           └── xlsx-import/                  # Historical XLSX import
-└── README.md
+│           ├── cal-com-webhook/              # Cal.com meeting booking
+│           └── google-calendar-webhook/      # Google Calendar synchronization
+├── netlify.toml                              # Netlify build and redirect configuration
+├── .env.example                              # Environment variable reference
+├── package.json
+└── vite.config.ts
 ```
 
-Use only `pr-client-campaign-tracker-backend/supabase/` for Supabase CLI commands.
+---
 
-## Backend capabilities (done)
+## Getting Started
 
-- **Clients** — records, status, contacts, tags
-- **Meetings** — history, attendees, Cal.com + Google Calendar sync
-- **Transcripts** — multi-part, segments, action items; Read AI webhook + auto-match to meetings
-- **Proposals** — PDF metadata + `proposals` storage bucket
-- **Campaigns** — copy, status, metrics channels
-- **Screenshot metrics** — upload to `campaign-screenshots` → Gemini Vision → `extracted_metrics`
-- **Idempotency** — `webhook_events`, `integration_accounts`, `sync_state`, `import_batches`
-- **XLSX import** — Clients, Meetings, Campaigns (+ optional metrics rows)
+### 1. Prerequisites
 
-## Edge Functions
+- **Node.js** 18+ (tested on Node.js 20 and 24)
+- **npm** or **pnpm**
+- A [Supabase](https://supabase.com) project (or local Supabase instance)
 
-| Function | Purpose | Secrets |
-|----------|---------|---------|
-| `gemini-extract-metrics` | Extract metrics from campaign screenshots | `GEMINI_API_KEY` |
-| `read-ai-webhook` | Ingest Read AI transcripts | `READ_AI_WEBHOOK_SECRET` (optional) |
-| `cal-com-webhook` | Create/update/cancel meetings from Cal.com | `CAL_COM_WEBHOOK_SECRET` |
-| `google-calendar-webhook` | Upsert meetings from Google Calendar | `GOOGLE_CALENDAR_CHANNEL_TOKEN` (optional `GOOGLE_CALENDAR_ACCESS_TOKEN`, `GOOGLE_CALENDAR_ID`) |
-| `xlsx-import` | Bulk / historical import from Storage | Service role |
+### 2. Environment Configuration
 
-### Function base URL
+Copy `.env.example` to `.env`:
 
-```
-https://<project-ref>.supabase.co/functions/v1/<function-name>
+```bash
+cp .env.example .env
 ```
 
-## Prerequisites
+Set your Supabase project credentials in `.env`:
 
-- Node.js 18+
-- [Deno](https://deno.land/) (for editing Edge Functions)
-- [Supabase CLI](https://supabase.com/docs/guides/cli)
-- A Supabase project
-- A [Gemini API key](https://aistudio.google.com/apikey)
+```env
+# Supabase Project URL
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 
-## Backend setup
+# Supabase Public Anon Key
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
-```powershell
+> **Note:** The client requires only the public anon key (`VITE_SUPABASE_ANON_KEY`). Never expose your service role key in frontend environment variables.
+
+### 3. Install Dependencies & Run Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start Vite local development server
+npm run dev
+```
+
+Visit `http://localhost:5173` in your browser.
+
+### 4. Build for Production
+
+```bash
+# Type check and build bundle
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+---
+
+## Supabase Backend Setup
+
+If deploying a fresh Supabase project:
+
+### 1. Run Migrations
+
+From the `pr-client-campaign-tracker-backend` directory:
+
+```bash
 cd pr-client-campaign-tracker-backend
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-### Secrets
+The migrations set up:
+- Core tables (`profiles`, `clients`, `proposals`, `meetings`, `meeting_attendees`, `transcripts`, `transcript_parts`, `transcript_segments`, `transcript_action_items`, `campaigns`, `campaign_metrics`, `campaign_screenshots`).
+- Idempotency & integration tables (`integration_accounts`, `webhook_events`, `sync_state`, `import_batches`).
+- Storage buckets (`proposals`, `campaign-screenshots`, `imports`) with proper RLS storage policies.
+- Automatic profile trigger on `auth.users` insert.
+- Rich seed data with sample clients, meetings, transcripts, and campaigns.
 
-```powershell
-supabase secrets set GEMINI_API_KEY=your_gemini_key
+### 2. Configure Edge Function Secrets
+
+```bash
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key
 supabase secrets set READ_AI_WEBHOOK_SECRET=your_read_ai_secret
 supabase secrets set CAL_COM_WEBHOOK_SECRET=your_cal_com_secret
 supabase secrets set GOOGLE_CALENDAR_CHANNEL_TOKEN=your_gcal_token
 ```
 
-Optional (live Google Calendar API pull):
+### 3. Deploy Edge Functions
 
-```powershell
-supabase secrets set GOOGLE_CALENDAR_ACCESS_TOKEN=ya29.your_token
-supabase secrets set GOOGLE_CALENDAR_ID=primary
-```
-
-### Deploy functions
-
-```powershell
+```bash
 supabase functions deploy gemini-extract-metrics
+supabase functions deploy xlsx-import
 supabase functions deploy read-ai-webhook
 supabase functions deploy cal-com-webhook
 supabase functions deploy google-calendar-webhook
-supabase functions deploy xlsx-import
 ```
 
-### Storage buckets
+---
 
-| Bucket | Use |
-|--------|-----|
-| `proposals` | PDF proposals / contracts |
-| `campaign-screenshots` | Screenshots for Gemini metric extraction |
-| `imports` | XLSX files for historical import |
+## Netlify Deployment
 
-## XLSX import
+The project is pre-configured for seamless Netlify deployment:
 
-1. Upload an `.xlsx` file to the `imports` storage bucket.
-2. Call the function:
+1. **Connect Repository:** Link this Git repository in the Netlify dashboard.
+2. **Build Settings:** Automatically detected from `netlify.toml`:
+   - **Build Command:** `npm run build`
+   - **Publish Directory:** `dist`
+3. **Environment Variables:**
+   Under **Site configuration > Environment variables**, add:
+   - `VITE_SUPABASE_URL` = your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` = your Supabase anon key
+4. **Deploy:** Click **Deploy site**. SPA routing is handled automatically via `public/_redirects` and `netlify.toml`.
 
-```json
-{
-  "filePath": "historical-data.xlsx",
-  "fileName": "historical-data.xlsx"
-}
-```
+---
 
-Supported sheets (sheet name can contain the keyword):
+## Demo Credentials
 
-| Sheet keyword | Imports into |
-|---------------|--------------|
-| Clients | `clients` |
-| Meetings / Calls | `meetings` |
-| Campaigns | `campaigns` + optional `campaign_metrics` |
+When running against the seed database, the following team credentials can be used for quick login:
 
-Column headers are matched flexibly (for example `client_name` or `Client Name`).
+| Role | Email | Password |
+|---|---|---|
+| **Agency Lead (Admin)** | `elena@prestige-pr.com` | `Agency123!` |
+| **PR Specialist (Member)** | `marcus@prestige-pr.com` | `Agency123!` |
+| **Media Director (Admin)** | `sarah@prestige-pr.com` | `Agency123!` |
 
-## VS Code / Cursor setup for Edge Functions
+*(The login screen also provides quick-fill demo buttons for instantaneous testing).*
 
-Install the **Deno** extension, then use this `.vscode/settings.json`:
-
-```json
-{
-  "deno.enable": true,
-  "deno.enablePaths": [
-    "./pr-client-campaign-tracker-backend/supabase/functions"
-  ],
-  "deno.lint": true,
-  "deno.unstable": true,
-  "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  }
-}
-```
-
-## Roadmap
-
-- [x] Schema + RLS + storage buckets
-- [x] Gemini screenshot metric extraction
-- [x] Idempotency + webhook foundation tables
-- [x] Read AI webhook + transcript-to-meeting auto-match
-- [x] Cal.com webhook (used instead of Calendly in this build)
-- [x] Google Calendar webhook / sync helper
-- [x] XLSX historical import (clients, meetings, campaigns)
-- [ ] Frontend rebuilt against live Supabase
-- [ ] Global search + month/status filters (UI)
-- [ ] Netlify deploy config
-- [ ] Production Auth (team login)
-
-## Notes
-
-- The original brief mentioned Claude and Calendly. This project uses **Gemini** for vision metrics and **Cal.com** for scheduling webhooks.
-- `meetings.cal_com_booking_uid` stores Cal.com booking IDs.
-- `meetings.gcal_event_id` stores Google Calendar event IDs.
-- Edge Functions use the service role. If you add new tables, grant `service_role` access as needed.
+---
 
 ## License
 
-Private — internal PR agency use.
+Private — For internal PR agency operations.

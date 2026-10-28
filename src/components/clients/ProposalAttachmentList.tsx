@@ -13,6 +13,7 @@ import {
   FileCheck
 } from 'lucide-react'
 import { useUploadProposal, useDeleteProposal } from '@/hooks/useClients'
+import { clientService } from '@/services/clientService'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -40,53 +41,61 @@ export const ProposalAttachmentList: React.FC<ProposalAttachmentListProps> = ({
   const uploadMutation = useUploadProposal()
   const deleteMutation = useDeleteProposal()
 
-  const handleSimulatedUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setIsUploading(true)
-    setUploadProgress(20)
+    setUploadProgress(30)
 
-    // Simulate progress
-    setTimeout(() => setUploadProgress(60), 300)
-    setTimeout(async () => {
+    try {
+      setUploadProgress(60)
+      const isContract = file.name.toLowerCase().includes('contract')
+      const docType = isContract ? 'contract' : 'proposal'
+      await uploadMutation.mutateAsync({
+        clientId,
+        file,
+        type: docType,
+        status: 'draft'
+      })
       setUploadProgress(100)
-      try {
-        await uploadMutation.mutateAsync({
-          clientId,
-          doc: {
-            name: file.name,
-            fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-            url: '#',
-            type: file.name.toLowerCase().includes('contract') ? 'contract' : 'proposal',
-            status: 'review'
-          }
-        })
-        toast.success(`Uploaded "${file.name}" to ${clientName}'s proposals vault!`)
-      } catch {
-        toast.error('Failed to upload document.')
-      } finally {
-        setIsUploading(false)
-        setUploadProgress(0)
-        e.target.value = ''
-      }
-    }, 700)
+      toast.success(`Uploaded "${file.name}" to ${clientName}'s proposals bucket!`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload document.')
+    } finally {
+      setIsUploading(false)
+      setUploadProgress(0)
+      e.target.value = ''
+    }
   }
 
-  const handleDelete = async (docId: string, docName: string) => {
+  const handleDelete = async (docId: string, docName: string, filePath?: string) => {
     try {
-      await deleteMutation.mutateAsync({ clientId, docId })
+      await deleteMutation.mutateAsync({ clientId, docId, filePath })
       toast.success(`Removed "${docName}"`)
     } catch {
       toast.error('Failed to remove document.')
     }
   }
 
-  const handleDownload = (doc: ProposalDocument) => {
-    toast.info(`Preparing secure download for ${doc.name}...`)
-    setTimeout(() => {
-      toast.success(`Downloaded ${doc.name}`)
-    }, 600)
+  const handleDownload = async (doc: ProposalDocument) => {
+    try {
+      toast.info(`Opening ${doc.name}...`)
+      if (doc.filePath) {
+        const url = await clientService.getProposalSignedUrl(doc.filePath)
+        if (url && url !== '#') {
+          window.open(url, '_blank')
+          return
+        }
+      }
+      if (doc.url && doc.url !== '#') {
+        window.open(doc.url, '_blank')
+      } else {
+        toast.info(`Document: ${doc.name}`)
+      }
+    } catch {
+      toast.error('Could not open document.')
+    }
   }
 
   return (
@@ -98,7 +107,7 @@ export const ProposalAttachmentList: React.FC<ProposalAttachmentListProps> = ({
           id="proposal-upload"
           accept=".pdf,.doc,.docx"
           className="hidden"
-          onChange={handleSimulatedUpload}
+          onChange={handleFileUpload}
           disabled={isUploading}
         />
         <label
@@ -208,7 +217,7 @@ export const ProposalAttachmentList: React.FC<ProposalAttachmentListProps> = ({
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     title="Delete Document"
-                    onClick={() => handleDelete(doc.id, doc.name)}
+                    onClick={() => handleDelete(doc.id, doc.name, doc.filePath)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

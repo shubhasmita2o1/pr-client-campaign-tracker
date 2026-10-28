@@ -48,13 +48,28 @@ export function useUploadProposal() {
   return useMutation({
     mutationFn: ({
       clientId,
+      file,
+      type,
+      status,
       doc
     }: {
       clientId: string
-      doc: Omit<ProposalDocument, 'id' | 'uploadedAt'>
-    }) => clientService.uploadProposalDoc(clientId, doc),
+      file?: File
+      type?: 'proposal' | 'contract' | 'brief' | 'report'
+      status?: 'signed' | 'review' | 'draft'
+      doc?: { name: string; fileSize?: string; url?: string; type?: ProposalDocument['type']; status?: ProposalDocument['status'] }
+    }) => {
+      if (file) {
+        return clientService.uploadProposal(clientId, file, type, status)
+      }
+      if (doc) {
+        return clientService.uploadProposalDoc(clientId, doc)
+      }
+      throw new Error('No file provided for upload')
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [CLIENT_QUERY_KEY, variables.clientId] })
+      queryClient.invalidateQueries({ queryKey: [CLIENT_QUERY_KEY] })
     }
   })
 }
@@ -62,10 +77,11 @@ export function useUploadProposal() {
 export function useDeleteProposal() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ clientId, docId }: { clientId: string; docId: string }) =>
-      clientService.deleteProposalDoc(clientId, docId),
+    mutationFn: ({ clientId, docId, filePath }: { clientId: string; docId: string; filePath?: string }) =>
+      clientService.deleteProposal(docId, filePath),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [CLIENT_QUERY_KEY, variables.clientId] })
+      queryClient.invalidateQueries({ queryKey: [CLIENT_QUERY_KEY] })
     }
   })
 }

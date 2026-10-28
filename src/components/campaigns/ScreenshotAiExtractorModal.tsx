@@ -13,14 +13,14 @@ import {
   Upload,
   Sparkles,
   CheckCircle2,
-  AlertCircle,
   FileImage,
   ArrowRight,
-  TrendingUp,
-  BrainCircuit,
-  Eye
+  BrainCircuit
 } from 'lucide-react'
-import { useExtractMetricsFromScreenshot, useApplyExtractedMetrics } from '@/hooks/useCampaigns'
+import { useApplyExtractedMetrics } from '@/hooks/useCampaigns'
+import { campaignService } from '@/services/campaignService'
+import { useQueryClient } from '@tanstack/react-query'
+import { CAMPAIGN_QUERY_KEY } from '@/hooks/useCampaigns'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { formatNumber } from '@/lib/utils'
@@ -57,10 +57,12 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
   open,
   onOpenChange
 }) => {
+  const queryClient = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<{
     name: string
     url: string
     size: string
+    file?: File
   } | null>(null)
 
   const [isScanning, setIsScanning] = useState(false)
@@ -69,7 +71,6 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
     campaign: Campaign
   } | null>(null)
 
-  const extractMutation = useExtractMetricsFromScreenshot()
   const applyMutation = useApplyExtractedMetrics()
 
   const handleSelectSample = (sample: (typeof SAMPLE_SCREENSHOTS)[0]) => {
@@ -90,7 +91,8 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
       setSelectedFile({
         name: file.name,
         url: reader.result as string,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        file
       })
       setExtractedResult(null)
     }
@@ -105,16 +107,24 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
 
     setIsScanning(true)
     try {
-      const result = await extractMutation.mutateAsync({
-        campaignId: campaign.id,
-        fileName: selectedFile.name,
-        thumbnailUrl: selectedFile.url,
-        fileSize: selectedFile.size
-      })
+      const filePayload = selectedFile.file || {
+        name: selectedFile.name,
+        size: 1.4 * 1024 * 1024,
+        url: selectedFile.url
+      }
+
+      const result = await campaignService.uploadScreenshotAndExtract(
+        campaign.id,
+        filePayload
+      )
+
       setExtractedResult(result)
-      toast.success('AI OCR Vision parsed analytics successfully!')
-    } catch {
-      toast.error('Failed to extract metrics.')
+      queryClient.invalidateQueries({ queryKey: [CAMPAIGN_QUERY_KEY, campaign.id] })
+      queryClient.invalidateQueries({ queryKey: [CAMPAIGN_QUERY_KEY] })
+      toast.success('Gemini AI Vision parsed campaign metrics successfully!')
+    } catch (err) {
+      console.error('[handleRunExtraction] Error:', err)
+      toast.error('Failed to extract metrics from screenshot.')
     } finally {
       setIsScanning(false)
     }
@@ -128,11 +138,15 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
         screenshotId: extractedResult.screenshot.id
       })
       toast.success('Extracted metrics added to campaign table!')
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.6 }
-      })
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.6 }
+        })
+      } catch {
+        // Ignore
+      }
       onOpenChange(false)
     } catch {
       toast.error('Failed to apply metrics to table.')
@@ -147,10 +161,10 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
             <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
               <Sparkles className="h-4 w-4" />
             </div>
-            <DialogTitle>Extract Campaign Metrics with AI Vision</DialogTitle>
+            <DialogTitle>Extract Campaign Metrics with Gemini AI Vision</DialogTitle>
           </div>
           <DialogDescription>
-            Upload a dashboard screenshot from Muck Rack, Cision, Meltwater, or Google Analytics to automatically parse numbers into your campaign performance table.
+            Upload a dashboard screenshot from Muck Rack, Cision, Meltwater, or Google Analytics. Stored in Supabase &ldquo;campaign-screenshots&rdquo; bucket and analyzed via the gemini-extract-metrics Edge Function.
           </DialogDescription>
         </DialogHeader>
 
@@ -236,7 +250,7 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
                   className="gap-1.5 bg-primary hover:bg-primary/90 text-xs shadow-sm"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
-                  <span>{isScanning ? 'Analyzing with AI Vision...' : 'Extract Metrics with AI'}</span>
+                  <span>{isScanning ? 'Analyzing with Gemini Vision...' : 'Extract Metrics with AI'}</span>
                 </Button>
               </div>
 
@@ -248,7 +262,7 @@ export const ScreenshotAiExtractorModal: React.FC<ScreenshotAiExtractorModalProp
                   className="w-full h-full object-cover opacity-90"
                 />
 
-                {/* Simulated scanning radar beam */}
+                {/* Scanning radar beam */}
                 {isScanning && (
                   <div className="absolute inset-0 bg-primary/20 backdrop-blur-2xs flex flex-col items-center justify-center space-y-2">
                     <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center animate-spin">

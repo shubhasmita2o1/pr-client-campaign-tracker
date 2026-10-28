@@ -21,10 +21,12 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Client, ClientFormData } from '@/types/client'
-import { agencyOwners } from '@/data/mockClients'
 import { useCreateClient, useUpdateClient } from '@/hooks/useClients'
+import { useSettings } from '@/hooks/useSettings'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
+
+const DEFAULT_OWNER_ID = '00000000-0000-0000-0000-000000000001'
 
 const clientSchema = z.object({
   name: z.string().min(2, 'Client name must be at least 2 characters'),
@@ -36,7 +38,7 @@ const clientSchema = z.object({
   primaryContactName: z.string().min(2, 'Contact name is required'),
   primaryContactEmail: z.string().email('Valid email address is required'),
   primaryContactTitle: z.string().min(2, 'Contact title is required'),
-  retainerMonthly: z.coerce.number().min(1000, 'Monthly retainer must be at least $1,000'),
+  retainerMonthly: z.coerce.number().min(0, 'Monthly retainer must be positive'),
   website: z.string().url('Must be a valid URL with https://'),
   tagsString: z.string().optional(),
   notes: z.string().optional()
@@ -55,25 +57,29 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
   onOpenChange,
   clientToEdit
 }) => {
+  const { teamMembers } = useSettings()
   const createClientMutation = useCreateClient()
   const updateClientMutation = useUpdateClient()
+
+  const defaultOwner = teamMembers[0]?.id || DEFAULT_OWNER_ID
 
   const {
     register,
     handleSubmit,
+    reset,
     setValue,
     watch,
-    reset,
     formState: { errors, isSubmitting }
   } = useForm<ClientFormSchemaType>({
-    resolver: zodResolver(clientSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(clientSchema) as any,
     defaultValues: {
       name: '',
       company: '',
       status: 'active',
       industry: 'Enterprise AI & Tech',
       tier: 'Growth',
-      ownerId: agencyOwners[0].id,
+      ownerId: defaultOwner,
       primaryContactName: '',
       primaryContactEmail: '',
       primaryContactTitle: 'VP of Communications',
@@ -92,13 +98,13 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
         status: clientToEdit.status,
         industry: clientToEdit.industry,
         tier: clientToEdit.tier,
-        ownerId: clientToEdit.owner.id,
-        primaryContactName: clientToEdit.primaryContact.name,
-        primaryContactEmail: clientToEdit.primaryContact.email,
-        primaryContactTitle: clientToEdit.primaryContact.title,
-        retainerMonthly: clientToEdit.retainerMonthly,
-        website: clientToEdit.website,
-        tagsString: clientToEdit.tags.join(', '),
+        ownerId: clientToEdit.owner?.id || defaultOwner,
+        primaryContactName: clientToEdit.primaryContact?.name || '',
+        primaryContactEmail: clientToEdit.primaryContact?.email || '',
+        primaryContactTitle: clientToEdit.primaryContact?.title || '',
+        retainerMonthly: clientToEdit.retainerMonthly || 0,
+        website: clientToEdit.website || 'https://',
+        tagsString: (clientToEdit.tags || []).join(', '),
         notes: clientToEdit.notes || ''
       })
     } else {
@@ -108,7 +114,7 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
         status: 'active',
         industry: 'Enterprise AI & Tech',
         tier: 'Growth',
-        ownerId: agencyOwners[0].id,
+        ownerId: defaultOwner,
         primaryContactName: '',
         primaryContactEmail: '',
         primaryContactTitle: 'VP of Communications',
@@ -118,7 +124,7 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
         notes: ''
       })
     }
-  }, [clientToEdit, reset, open])
+  }, [clientToEdit, reset, open, defaultOwner])
 
   const onSubmit = async (values: ClientFormSchemaType) => {
     try {
@@ -143,12 +149,20 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
       }
 
       if (clientToEdit) {
-        const owner = agencyOwners.find(o => o.id === values.ownerId) || agencyOwners[0]
+        const ownerObj = teamMembers.find(o => o.id === values.ownerId)
         await updateClientMutation.mutateAsync({
           id: clientToEdit.id,
           data: {
             ...payload,
-            owner,
+            owner: ownerObj
+              ? {
+                  id: ownerObj.id,
+                  name: ownerObj.fullName,
+                  email: ownerObj.email,
+                  avatar: ownerObj.avatarUrl,
+                  role: ownerObj.role === 'admin' ? 'Agency Lead' : 'PR Specialist'
+                }
+              : clientToEdit.owner,
             primaryContact: {
               name: payload.primaryContactName,
               email: payload.primaryContactEmail,
@@ -159,119 +173,118 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
         toast.success(`Client "${values.name}" updated successfully`)
       } else {
         await createClientMutation.mutateAsync(payload)
-        toast.success(`New client "${values.name}" onboarded!`)
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.7 }
-        })
+        toast.success(`New client "${values.name}" onboarded to agency database!`)
+        try {
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } })
+        } catch {
+          // Ignore
+        }
       }
 
       onOpenChange(false)
-    } catch {
-      toast.error('Failed to save client details. Please try again.')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save client details.')
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{clientToEdit ? 'Edit Client Profile' : 'Onboard New PR Client'}</DialogTitle>
+          <DialogTitle>{clientToEdit ? 'Edit Client Record' : 'Onboard New Agency Client'}</DialogTitle>
           <DialogDescription>
             {clientToEdit
-              ? 'Update client information, retainer level, and communication ownership.'
-              : 'Add a new client to the PR agency tracker and configure their service agreement.'}
+              ? 'Update account metrics, assigned PR lead, and communication details.'
+              : 'Add an enterprise or growth tier client to start tracking meetings, press campaigns, and media ROI.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          {/* Row 1: Name and Company */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Client Brand Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Client Brand Name *</label>
-              <Input
-                placeholder="e.g. NovaAI Systems"
-                {...register('name')}
-              />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Brand / Display Name *</label>
+              <Input placeholder="e.g. Acme Tech" {...register('name')} />
               {errors.name && <p className="text-[11px] text-destructive">{errors.name.message}</p>}
             </div>
 
-            {/* Legal Entity */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Company Legal Name *</label>
-              <Input
-                placeholder="e.g. NovaAI Systems Inc."
-                {...register('company')}
-              />
-              {errors.company && <p className="text-[11px] text-destructive">{errors.company.message}</p>}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Legal Entity / Company Name *</label>
+              <Input placeholder="e.g. Acme Technologies Inc." {...register('company')} />
+              {errors.company && (
+                <p className="text-[11px] text-destructive">{errors.company.message}</p>
+              )}
             </div>
           </div>
 
+          {/* Row 2: Status, Tier, and Industry */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Status */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Status *</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Account Status *</label>
               <Select
                 value={watch('status')}
                 onValueChange={(val: 'active' | 'prospect' | 'churned') => setValue('status', val)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active Retainer</SelectItem>
-                  <SelectItem value="prospect">Pipeline Prospect</SelectItem>
-                  <SelectItem value="churned">Churned / Completed</SelectItem>
+                  <SelectItem value="prospect">Prospect / In Talks</SelectItem>
+                  <SelectItem value="churned">Churned / Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Tier */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Account Tier *</label>
               <Select
                 value={watch('tier')}
                 onValueChange={(val: 'Enterprise' | 'Growth' | 'Boutique') => setValue('tier', val)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select tier" />
+                  <SelectValue placeholder="Tier" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Enterprise">Enterprise</SelectItem>
-                  <SelectItem value="Growth">Growth</SelectItem>
-                  <SelectItem value="Boutique">Boutique</SelectItem>
+                  <SelectItem value="Enterprise">Enterprise ($40k+/mo)</SelectItem>
+                  <SelectItem value="Growth">Growth ($15k-$40k/mo)</SelectItem>
+                  <SelectItem value="Boutique">Boutique (&lt;$15k/mo)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Monthly Retainer */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Monthly Retainer ($) *</label>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Industry Vertical *</label>
+              <Input placeholder="e.g. Fintech, AI SaaS" {...register('industry')} />
+              {errors.industry && (
+                <p className="text-[11px] text-destructive">{errors.industry.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Retainer, Website, Owner */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Monthly Retainer (USD) *</label>
               <Input
                 type="number"
-                placeholder="20000"
+                placeholder="25000"
                 {...register('retainerMonthly')}
               />
               {errors.retainerMonthly && (
                 <p className="text-[11px] text-destructive">{errors.retainerMonthly.message}</p>
               )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Industry */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Industry / Practice Area *</label>
-              <Input
-                placeholder="e.g. Enterprise AI, CleanTech, BioTech"
-                {...register('industry')}
-              />
-              {errors.industry && <p className="text-[11px] text-destructive">{errors.industry.message}</p>}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Website URL *</label>
+              <Input placeholder="https://acme.com" {...register('website')} />
+              {errors.website && (
+                <p className="text-[11px] text-destructive">{errors.website.message}</p>
+              )}
             </div>
 
-            {/* Agency Owner */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Agency PR Lead *</label>
               <Select
                 value={watch('ownerId')}
@@ -281,11 +294,18 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
                   <SelectValue placeholder="Select lead" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agencyOwners.map(o => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.name} ({o.role})
-                    </SelectItem>
-                  ))}
+                  {teamMembers && teamMembers.length > 0 ? (
+                    teamMembers.map(o => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.fullName} ({o.role})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value={DEFAULT_OWNER_ID}>Elena Rostova (Admin)</SelectItem>
+                      <SelectItem value="00000000-0000-0000-0000-000000000002">Priya Sharma (PR Lead)</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -299,49 +319,54 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Full Name *</label>
-                <Input placeholder="Dr. Sarah Lin" {...register('primaryContactName')} />
+                <Input placeholder="Jane Doe" {...register('primaryContactName')} />
                 {errors.primaryContactName && (
-                  <p className="text-[11px] text-destructive">{errors.primaryContactName.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.primaryContactName.message}
+                  </p>
                 )}
               </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Email *</label>
-                <Input placeholder="slin@novaai.tech" {...register('primaryContactEmail')} />
+                <label className="text-xs font-medium text-foreground">Work Email *</label>
+                <Input
+                  type="email"
+                  placeholder="jane@acme.com"
+                  {...register('primaryContactEmail')}
+                />
                 {errors.primaryContactEmail && (
-                  <p className="text-[11px] text-destructive">{errors.primaryContactEmail.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.primaryContactEmail.message}
+                  </p>
                 )}
               </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Title *</label>
-                <Input placeholder="Chief Marketing Officer" {...register('primaryContactTitle')} />
+                <label className="text-xs font-medium text-foreground">Title / Role *</label>
+                <Input placeholder="CMO / VP Comms" {...register('primaryContactTitle')} />
                 {errors.primaryContactTitle && (
-                  <p className="text-[11px] text-destructive">{errors.primaryContactTitle.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.primaryContactTitle.message}
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Website */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Website URL *</label>
-              <Input placeholder="https://novaai.tech" {...register('website')} />
-              {errors.website && <p className="text-[11px] text-destructive">{errors.website.message}</p>}
-            </div>
-
-            {/* Tags */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Tags (comma separated)</label>
-              <Input placeholder="GenAI, Series B, Tier-1 Media" {...register('tagsString')} />
-            </div>
+          {/* Tags */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">
+              Industry Tags (comma separated)
+            </label>
+            <Input placeholder="AI, Enterprise, Series B, IPO Track" {...register('tagsString')} />
           </div>
 
-          {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">Strategic PR Goals &amp; Internal Notes</label>
+          {/* Strategic Notes */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Strategic PR Account Notes</label>
             <Textarea
-              placeholder="Key upcoming embargo dates, target reporters, target publications..."
               rows={3}
+              placeholder="Key spokesperson preferences, embargo rules, approved soundbites, competitor guardrails..."
               {...register('notes')}
             />
           </div>
@@ -350,14 +375,17 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : clientToEdit ? 'Update Client' : 'Onboard Client'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? 'Saving...'
+                : clientToEdit
+                ? 'Save Changes'
+                : 'Create Client'}
             </Button>
           </DialogFooter>
         </form>
