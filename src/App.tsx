@@ -1,15 +1,18 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@/context/ThemeContext'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { Toaster } from 'sonner'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
-// Pages
+// Auth Pages
 import { LoginPage } from '@/features/auth/LoginPage'
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
+
+// App Pages
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ClientsPage } from '@/pages/ClientsPage'
 import { ClientDetailPage } from '@/pages/ClientDetailPage'
@@ -26,12 +29,31 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
-      retry: 1
+      retry: 1,
     },
   },
 })
+
+// Protect routes – redirect to login if not authenticated
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
 
 export function App() {
   return (
@@ -41,14 +63,24 @@ export function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public Auth Flow */}
-                <Route path="/login" element={<AuthLayout />}>
-                  <Route index element={<LoginPage />} />
+                {/* Public Auth Routes */}
+                <Route element={<AuthLayout />}>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<LoginPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 </Route>
 
-                {/* Protected App Layout */}
-                <Route path="/" element={<AppLayout />}>
+                {/* Protected App Routes */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
                   <Route index element={<DashboardPage />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clients" element={<ClientsPage />} />
                   <Route path="clients/:id" element={<ClientDetailPage />} />
                   <Route path="meetings" element={<MeetingsPage />} />
