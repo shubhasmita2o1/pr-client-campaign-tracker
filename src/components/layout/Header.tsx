@@ -12,14 +12,11 @@ import {
   FileSpreadsheet,
   Calendar,
   UserPlus,
-  Image as ImageIcon,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
   ShieldCheck,
   LogOut,
   Settings,
-  UserCheck
+  UserCheck,
+  TrendingUp
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -57,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Derive breadcrumb path
   const pathParts = location.pathname.split('/').filter(Boolean)
   const getBreadcrumbs = () => {
-    if (pathParts.length === 0) return [{ label: 'Dashboard', path: '/' }]
+    if (pathParts.length === 0) return [{ label: 'Executive Dashboard', path: '/' }]
     const crumbs = [{ label: 'Dashboard', path: '/' }]
     let curPath = ''
     for (const part of pathParts) {
@@ -76,34 +73,34 @@ export const Header: React.FC<HeaderProps> = ({
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 w-full items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-4 backdrop-blur-md">
+    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border/75 bg-card/90 dark:bg-card/85 px-4 sm:px-6 backdrop-blur-md select-none">
       {/* Left: Mobile menu & Breadcrumb Navigation */}
       <div className="flex items-center gap-3 min-w-0">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          className="md:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
           onClick={onToggleSidebarMobile}
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle navigation</span>
         </Button>
 
-        {/* Breadcrumbs */}
-        <nav className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+        {/* Breadcrumbs with subtle luxury typography */}
+        <nav className="flex items-center space-x-1.5 text-xs text-muted-foreground font-medium truncate">
           {breadcrumbs.map((crumb, idx) => {
             const isLast = idx === breadcrumbs.length - 1
             return (
               <React.Fragment key={crumb.path}>
-                {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600 shrink-0" />}
+                {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />}
                 {isLast ? (
-                  <span className="font-semibold text-slate-900 dark:text-white truncate">
+                  <span className="font-semibold text-foreground truncate">
                     {crumb.label}
                   </span>
                 ) : (
                   <Link
                     to={crumb.path}
-                    className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors truncate"
+                    className="hover:text-primary transition-colors truncate"
                   >
                     {crumb.label}
                   </Link>
@@ -114,37 +111,43 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
       </div>
 
-      {/* Center: Global Search Bar */}
+      {/* Center: Global Search Bar Pill */}
       <div className="hidden lg:flex items-center max-w-sm w-full mx-4">
         <button
           onClick={onOpenSearch}
-          className="flex w-full items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all justify-between group"
+          className="flex w-full items-center gap-2 rounded-xl border border-border/80 bg-secondary/50 px-3.5 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-all justify-between group cursor-pointer shadow-2xs"
         >
-          <div className="flex items-center gap-2">
-            <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-sky-500" />
-            <span className="truncate">Search clients, transcripts, campaigns...</span>
+          <div className="flex items-center gap-2 truncate">
+            <Search className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <span className="truncate">Search clients, press campaigns, transcripts...</span>
           </div>
-          <kbd className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+          <kbd className="rounded-md border border-border/80 bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
             ⌘K
           </kbd>
         </button>
       </div>
 
-      {/* Right Actions: Quick Actions, Notifications, Role Badge, Theme, User Avatar & Logout */}
-      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      {/* Right Actions */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Retainer live metric pill */}
+        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+          <TrendingUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>$170.5k MRR</span>
+        </div>
+
         {/* Quick Actions Dropdown Button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="h-8 gap-1.5 text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white shadow-xs"
+              className="h-8.5 gap-1.5 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-subtle cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Quick Actions</span>
+              <span className="hidden sm:inline">New Action</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-premium border-border/80">
+            <DropdownMenuLabel className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
               Agency Quick Actions
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -152,8 +155,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenNewClient}
               className="text-xs cursor-pointer flex items-center"
             >
-              <UserPlus className="h-3.5 w-3.5 mr-2 text-sky-500" />
-              Add New Client
+              <UserPlus className="h-3.5 w-3.5 mr-2 text-primary" />
+              Add New Client Account
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -162,8 +165,8 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               className="text-xs cursor-pointer flex items-center"
             >
-              <Calendar className="h-3.5 w-3.5 mr-2 text-indigo-500" />
-              Schedule Meeting
+              <Calendar className="h-3.5 w-3.5 mr-2 text-sky-500" />
+              Schedule Media Briefing
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -173,14 +176,14 @@ export const Header: React.FC<HeaderProps> = ({
               className="text-xs cursor-pointer flex items-center"
             >
               <Sparkles className="h-3.5 w-3.5 mr-2 text-amber-500" />
-              Upload Campaign Screenshot (AI)
+              Extract Metrics from Screenshot (AI)
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate('/imports')}
               className="text-xs cursor-pointer flex items-center"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 mr-2 text-emerald-500" />
-              Import XLSX Data
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-2 text-emerald-600" />
+              Import XLSX Master Sheet
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -191,30 +194,30 @@ export const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 relative text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              className="h-8.5 w-8.5 relative text-muted-foreground hover:text-foreground cursor-pointer rounded-xl"
               title="Notifications"
             >
               <Bell className="h-4 w-4" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-sky-500 ring-2 ring-white dark:ring-slate-900" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-card" />
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 p-0 shadow-lg">
-            <div className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                Notifications
+          <DropdownMenuContent align="end" className="w-80 p-0 shadow-premium rounded-xl border-border/80">
+            <div className="flex items-center justify-between p-3.5 border-b border-border/70">
+              <span className="text-xs font-semibold text-foreground">
+                Activity Alerts
               </span>
               {unreadNotifications > 0 && (
                 <button
                   onClick={() => setUnreadNotifications(0)}
-                  className="text-[11px] text-sky-600 hover:underline"
+                  className="text-[11px] text-primary hover:underline cursor-pointer font-medium"
                 >
                   Mark all read
                 </button>
               )}
             </div>
-            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="max-h-72 overflow-y-auto divide-y divide-border/60">
               {recentActivities && recentActivities.length > 0 ? (
                 recentActivities.slice(0, 4).map((act) => (
                   <div
@@ -225,33 +228,33 @@ export const Header: React.FC<HeaderProps> = ({
                       else if (act.targetType === 'meeting') navigate('/meetings')
                       else if (act.targetType === 'transcript') navigate('/transcripts')
                     }}
-                    className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+                    className="p-3 hover:bg-secondary/60 cursor-pointer transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
+                      <span className="text-xs font-semibold text-foreground truncate">
                         {act.title}
                       </span>
-                      <span className="text-[10px] text-slate-400 shrink-0">
+                      <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
                         {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                       {act.description}
                     </p>
                   </div>
                 ))
               ) : (
-                <div className="p-4 text-center text-xs text-slate-400">
+                <div className="p-4 text-center text-xs text-muted-foreground">
                   No new notifications
                 </div>
               )}
             </div>
-            <div className="p-2 border-t border-slate-100 dark:border-slate-800 text-center">
+            <div className="p-2.5 border-t border-border/70 text-center">
               <button
                 onClick={onOpenSearch}
-                className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium"
+                className="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer"
               >
-                View all activity feed &rarr;
+                View all agency audit trail &rarr;
               </button>
             </div>
           </DropdownMenuContent>
@@ -260,12 +263,12 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Active Role Quick Toggle Badge */}
         <button
           onClick={() => switchRole(role === 'admin' ? 'member' : 'admin')}
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border border-border/80 bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
           title="Click to toggle between Admin and Member roles"
         >
-          <ShieldCheck className="h-3 w-3 text-sky-500" />
-          <span className="uppercase text-[10px] text-slate-500">Role:</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">
+          <ShieldCheck className="h-3 w-3 text-primary" />
+          <span className="uppercase text-[10px] text-muted-foreground">Role:</span>
+          <span className="font-semibold text-foreground capitalize">
             {role}
           </span>
         </button>
@@ -273,28 +276,28 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Theme Toggle */}
         <ThemeToggle />
 
-        {/* Top Bar User Avatar + Logout Dropdown (Requirement 2) */}
+        {/* Top Bar User Avatar + Logout Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              className="flex items-center gap-2 p-1 rounded-full hover:bg-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
               title="Account &amp; Session"
             >
-              <Avatar className="h-7 w-7 ring-1 ring-slate-200 dark:ring-slate-700">
+              <Avatar className="h-8 w-8 ring-1 ring-border">
                 <AvatarImage src={user?.avatarUrl} alt={user?.fullName || 'User'} />
-                <AvatarFallback className="text-[11px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                <AvatarFallback className="text-[11px] font-semibold bg-primary/10 text-primary">
                   {user?.fullName?.slice(0, 2).toUpperCase() || 'PR'}
                 </AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-premium border-border/80">
             <DropdownMenuLabel>
-              <div className="font-semibold text-xs text-slate-900 dark:text-white truncate">
-                {user?.fullName || 'PR Team Member'}
+              <div className="font-semibold text-xs text-foreground truncate">
+                {user?.fullName || 'Elena Rostova'}
               </div>
-              <div className="text-[11px] font-normal text-slate-500 truncate">
-                {user?.email || 'member@prestige-pr.com'}
+              <div className="text-[11px] font-normal text-muted-foreground truncate">
+                {user?.email || 'elena@prestige-pr.com'}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -302,20 +305,20 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => switchRole(role === 'admin' ? 'member' : 'admin')}
               className="text-xs cursor-pointer"
             >
-              <UserCheck className="h-3.5 w-3.5 mr-2 text-sky-500" />
+              <UserCheck className="h-3.5 w-3.5 mr-2 text-primary" />
               Switch to {role === 'admin' ? 'Member' : 'Admin'} Role
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate('/settings')}
               className="text-xs cursor-pointer"
             >
-              <Settings className="h-3.5 w-3.5 mr-2 text-slate-400" />
+              <Settings className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
               Agency Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}
-              className="text-xs text-red-600 dark:text-red-400 cursor-pointer"
+              className="text-xs text-destructive cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5 mr-2" />
               Sign Out

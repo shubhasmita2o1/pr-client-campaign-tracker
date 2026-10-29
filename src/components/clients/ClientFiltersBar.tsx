@@ -45,31 +45,31 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs mb-5">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-card p-3 rounded-2xl border border-border/80 shadow-subtle mb-5">
       <div className="flex flex-1 flex-wrap items-center gap-2.5">
         {/* Search Input */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Search by client, legal entity, or tags..."
             value={filters.search || ''}
             onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
-            className="pl-8 h-8 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+            className="pl-9 h-8.5 text-xs bg-secondary/50 border-border/70 rounded-xl"
           />
         </div>
 
         {/* Status Filter */}
-        <div className="w-[140px]">
+        <div className="w-[145px]">
           <Select
             value={filters.status || 'all'}
             onValueChange={(val) =>
               setFilters((prev) => ({ ...prev, status: val as ClientFilters['status'] }))
             }
           >
-            <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="h-8.5 text-xs border-border/70 rounded-xl bg-secondary/30">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl shadow-premium border-border/80">
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active Retainer</SelectItem>
               <SelectItem value="prospect">Prospect</SelectItem>
@@ -79,15 +79,15 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
         </div>
 
         {/* Owner Filter */}
-        <div className="w-[150px]">
+        <div className="w-[155px]">
           <Select
             value={filters.ownerId || 'all'}
             onValueChange={(val) => setFilters((prev) => ({ ...prev, ownerId: val }))}
           >
-            <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="h-8.5 text-xs border-border/70 rounded-xl bg-secondary/30">
               <SelectValue placeholder="All PR Leads" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl shadow-premium border-border/80">
               <SelectItem value="all">All PR Leads</SelectItem>
               {teamMembers && teamMembers.length > 0 ? (
                 teamMembers.map((m) => (
@@ -107,15 +107,15 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
         </div>
 
         {/* Month Filter */}
-        <div className="w-[130px]">
+        <div className="w-[135px]">
           <Select
             value={filters.month || 'all'}
             onValueChange={(val) => setFilters((prev) => ({ ...prev, month: val }))}
           >
-            <SelectTrigger className="h-8 text-xs border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="h-8.5 text-xs border-border/70 rounded-xl bg-secondary/30">
               <SelectValue placeholder="Joined Month" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl shadow-premium border-border/80">
               <SelectItem value="all">All Months</SelectItem>
               <SelectItem value="2026-09">Sep 2026</SelectItem>
               <SelectItem value="2026-08">Aug 2026</SelectItem>
@@ -133,7 +133,7 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
             variant="ghost"
             size="sm"
             onClick={resetFilters}
-            className="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            className="h-8.5 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl"
           >
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Reset
@@ -142,10 +142,10 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
       </div>
 
       {/* Right counts & Export Action */}
-      <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-muted-foreground">
         <span>
-          Showing <strong className="text-slate-900 dark:text-white">{filteredCount}</strong> of{' '}
-          {totalCount} clients
+          Showing <strong className="text-foreground">{filteredCount}</strong> of{' '}
+          {totalCount} accounts
         </span>
 
         {onExportCSV && (
@@ -153,9 +153,9 @@ export const ClientFiltersBar: React.FC<ClientFiltersBarProps> = ({
             variant="outline"
             size="sm"
             onClick={onExportCSV}
-            className="h-8 text-xs gap-1.5 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            className="h-8.5 text-xs gap-1.5 border-border/70 rounded-xl hover:bg-secondary"
           >
-            <Download className="h-3.5 w-3.5 text-slate-400" />
+            <Download className="h-3.5 w-3.5 text-muted-foreground" />
             <span>Export CSV</span>
           </Button>
         )}

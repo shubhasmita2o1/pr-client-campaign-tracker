@@ -4,83 +4,84 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Ronas IT Luxury B2B CRM Palette: Warm Sand & Sage Mineral */
+    --background: 40 20% 98%;
+    --foreground: 160 18% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 160 18% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 160 18% 12%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 158 56% 36%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 40 22% 93%;
+    --secondary-foreground: 160 30% 18%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 40 16% 94%;
+    --muted-foreground: 160 8% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 158 35% 92%;
+    --accent-foreground: 158 55% 20%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 40 16% 89%;
+    --input: 40 16% 89%;
+    --ring: 158 56% 36%;
 
-    --radius: 0.5rem;
+    --radius: 0.875rem;
 
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 220 14% 14%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 160 18% 14%;
+    --sidebar-primary: 158 56% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 93%;
-    --sidebar-accent-foreground: 220 14% 14%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
+    --sidebar-accent: 158 30% 94%;
+    --sidebar-accent-foreground: 158 55% 20%;
+    --sidebar-border: 40 16% 90%;
+    --sidebar-ring: 158 56% 36%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 40% 98%;
+    --background: 215 22% 8%;
+    --foreground: 40 20% 96%;
 
-    --card: 224 71% 6%;
-    --card-foreground: 210 40% 98%;
+    --card: 215 20% 11.5%;
+    --card-foreground: 40 20% 96%;
 
-    --popover: 224 71% 6%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 215 20% 12%;
+    --popover-foreground: 40 20% 96%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 156 70% 45%;
+    --primary-foreground: 215 25% 8%;
 
-    --secondary: 217.2 32.6% 14%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 215 18% 16%;
+    --secondary-foreground: 40 15% 90%;
 
-    --muted: 217.2 32.6% 14%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 18% 16%;
+    --muted-foreground: 215 12% 64%;
 
-    --accent: 217.2 32.6% 14%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 156 40% 18%;
+    --accent-foreground: 156 70% 85%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 215 16% 18%;
+    --input: 215 16% 18%;
+    --ring: 156 70% 45%;
 
-    --sidebar-background: 224 71% 5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217.2 32.6% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 15%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 215 24% 7%;
+    --sidebar-foreground: 40 20% 96%;
+    --sidebar-primary: 156 70% 45%;
+    --sidebar-primary-foreground: 215 25% 8%;
+    --sidebar-accent: 215 18% 14%;
+    --sidebar-accent-foreground: 156 70% 85%;
+    --sidebar-border: 215 16% 15%;
+    --sidebar-ring: 156 70% 45%;
   }
 }
 
@@ -92,6 +93,25 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
+
+/* Glassmorphism & custom utility classes for Ronas IT CRM */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-panel {
+  background: rgba(23, 27, 33, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.subtle-border {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.dark .subtle-border {
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Custom minimal scrollbar */

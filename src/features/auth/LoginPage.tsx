@@ -62,7 +62,7 @@ export const LoginPage: React.FC = () => {
         const result = await signUp(email, password, fullName)
         if (result.success) {
           toast.success('Account created successfully! Welcome aboard.')
-          navigate('/dashboard')
+          navigate('/')
         } else {
           setError(result.error || 'Failed to create account')
           toast.error(result.error || 'Failed to create account')
@@ -71,7 +71,7 @@ export const LoginPage: React.FC = () => {
         const result = await login(email, password)
         if (result.success) {
           toast.success('Welcome back!')
-          navigate('/dashboard')
+          navigate('/')
         } else {
           setError(result.error || 'Invalid email or password')
           toast.error(result.error || 'Invalid credentials')
@@ -86,30 +86,30 @@ export const LoginPage: React.FC = () => {
     <div className="space-y-6">
       {/* Mobile Brand Header */}
       <div className="lg:hidden flex items-center gap-3 mb-6">
-        <div className="h-10 w-10 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-subtle">
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="font-semibold text-lg text-slate-900 dark:text-white">
-            PR Client & Campaign Tracker
+          <h1 className="font-bold text-lg text-foreground">
+            Prestige PR CRM
           </h1>
-          <p className="text-xs text-slate-500">Agency Client & Campaign Management</p>
+          <p className="text-xs text-muted-foreground">Agency Client &amp; Campaign Tracker</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          {isSignUp ? 'Create your account' : 'Sign in to your account'}
+        <h2 className="text-2xl font-extrabold tracking-tight text-foreground">
+          {isSignUp ? 'Create agency account' : 'Sign in to PR Operations'}
         </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           {isSignUp
-            ? 'Start managing clients, meetings, and campaigns in one place.'
-            : 'Enter your credentials to access your workspace.'}
+            ? 'Start managing client retainers, briefs, and campaigns in one place.'
+            : 'Enter your agency credentials to access your executive workspace.'}
         </p>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-400">
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
@@ -117,17 +117,17 @@ export const LoginPage: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {isSignUp && (
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-foreground">
               Full Name
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Jane Smith"
-                className="pl-9 h-10 text-sm"
+                placeholder="Elena Rostova"
+                className="pl-9 h-10 text-sm rounded-xl border-border/80"
                 required
                 autoComplete="name"
               />
@@ -136,17 +136,17 @@ export const LoginPage: React.FC = () => {
         )}
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label className="text-xs font-bold text-foreground">
             Work Email
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@agency.com"
-              className="pl-9 h-10 text-sm"
+              placeholder="elena@prestige-pr.com"
+              className="pl-9 h-10 text-sm rounded-xl border-border/80"
               required
               autoComplete="email"
             />
@@ -154,24 +154,24 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label className="text-xs font-bold text-foreground">
             Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={isSignUp ? 'Minimum 8 characters' : 'Enter your password'}
-              className="pl-9 pr-9 h-10 text-sm"
+              className="pl-9 pr-9 h-10 text-sm rounded-xl border-border/80"
               required
               autoComplete={isSignUp ? 'new-password' : 'current-password'}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -180,17 +180,17 @@ export const LoginPage: React.FC = () => {
 
         {isSignUp && (
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-foreground">
               Confirm Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your password"
-                className="pl-9 h-10 text-sm"
+                className="pl-9 h-10 text-sm rounded-xl border-border/80"
                 required
                 autoComplete="new-password"
               />
@@ -202,7 +202,7 @@ export const LoginPage: React.FC = () => {
           <div className="flex justify-end">
             <Link
               to="/forgot-password"
-              className="text-xs text-sky-600 dark:text-sky-400 hover:underline font-medium"
+              className="text-xs text-primary hover:underline font-semibold"
             >
               Forgot password?
             </Link>
@@ -211,7 +211,7 @@ export const LoginPage: React.FC = () => {
 
         <Button
           type="submit"
-          className="w-full h-10 bg-sky-500 hover:bg-sky-600 text-white font-medium text-sm gap-2 shadow-sm shadow-sky-500/25"
+          className="w-full h-10.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2 shadow-subtle rounded-xl"
           disabled={submitting || isLoading}
         >
           {submitting || isLoading ? (
@@ -236,7 +236,7 @@ export const LoginPage: React.FC = () => {
             setIsSignUp(!isSignUp)
             resetForm()
           }}
-          className="text-sm text-sky-600 dark:text-sky-400 hover:underline font-medium inline-flex items-center gap-1.5"
+          className="text-xs sm:text-sm text-primary hover:underline font-semibold inline-flex items-center gap-1.5 cursor-pointer"
         >
           {isSignUp ? (
             <>Already have an account? Sign in</>

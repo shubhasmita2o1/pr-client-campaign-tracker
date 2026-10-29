@@ -22,7 +22,7 @@ import {
 import { ClientStatusBadge } from '@/components/shared/StatusBadge'
 import { Client } from '@/types/client'
 import { formatCurrency } from '@/lib/utils'
-import { MoreHorizontal, ExternalLink, Edit3, Trash2, ArrowUpDown } from 'lucide-react'
+import { MoreHorizontal, ExternalLink, Edit3, Trash2 } from 'lucide-react'
 
 interface ClientTableProps {
   clients: Client[]
@@ -38,30 +38,30 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   const navigate = useNavigate()
 
   return (
-    <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs">
+    <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-subtle">
       <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-[280px]">Client / Account</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Retainer (MRR)</TableHead>
-            <TableHead>Tier</TableHead>
-            <TableHead>PR Lead</TableHead>
-            <TableHead>Spokesperson Contact</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+        <TableHeader className="bg-secondary/40">
+          <TableRow className="hover:bg-transparent border-b border-border/70">
+            <TableHead className="w-[280px] font-bold text-foreground text-xs">Client / Legal Account</TableHead>
+            <TableHead className="font-bold text-foreground text-xs">Status</TableHead>
+            <TableHead className="font-bold text-foreground text-xs">Retainer (MRR)</TableHead>
+            <TableHead className="font-bold text-foreground text-xs">Tier</TableHead>
+            <TableHead className="font-bold text-foreground text-xs">PR Lead</TableHead>
+            <TableHead className="font-bold text-foreground text-xs">Spokesperson Contact</TableHead>
+            <TableHead className="text-right font-bold text-foreground text-xs">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {clients.map(client => (
             <TableRow
               key={client.id}
-              className="cursor-pointer group hover:bg-muted/40 transition-colors"
+              className="cursor-pointer group hover:bg-secondary/40 transition-colors border-b border-border/50"
               onClick={() => navigate(`/clients/${client.id}`)}
             >
               {/* Client Info */}
-              <TableCell className="font-medium">
+              <TableCell className="font-medium py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg overflow-hidden shrink-0 border border-border/60 bg-muted/60 flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-secondary/80 flex items-center justify-center font-bold text-xs text-primary shadow-2xs">
                     {client.logo ? (
                       <img
                         src={client.logo}
@@ -69,17 +69,15 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="font-bold text-xs">
-                        {client.name.substring(0, 2).toUpperCase()}
-                      </span>
+                      <span>{client.name.substring(0, 2).toUpperCase()}</span>
                     )}
                   </div>
                   <div className="flex flex-col truncate">
-                    <span className="text-sm font-semibold group-hover:text-primary transition-colors flex items-center gap-1.5">
+                    <span className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                       {client.name}
                       <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                     </span>
-                    <span className="text-xs text-muted-foreground truncate">
+                    <span className="text-[11px] text-muted-foreground truncate">
                       {client.industry}
                     </span>
                   </div>
@@ -93,15 +91,18 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 
               {/* Retainer */}
               <TableCell>
-                <div className="font-semibold text-sm">
+                <div className="font-extrabold text-xs sm:text-sm tabular-nums text-foreground">
                   {formatCurrency(client.retainerMonthly)}
-                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                  <span className="text-[11px] font-normal text-muted-foreground"> /mo</span>
                 </div>
               </TableCell>
 
               {/* Tier */}
               <TableCell>
-                <Badge variant="outline" className="text-xs font-medium">
+                <Badge
+                  variant={client.tier === 'Enterprise' ? 'sage' : 'secondary'}
+                  className="text-[11px] font-semibold"
+                >
                   {client.tier}
                 </Badge>
               </TableCell>
@@ -109,13 +110,13 @@ export const ClientTable: React.FC<ClientTableProps> = ({
               {/* Owner */}
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
+                  <Avatar className="h-6.5 w-6.5 ring-1 ring-border shrink-0">
                     <AvatarImage src={client.owner.avatar} />
                     <AvatarFallback className="text-[10px]">
                       {client.owner.name.substring(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-xs text-foreground font-medium">
+                  <span className="text-xs text-foreground font-medium truncate">
                     {client.owner.name}
                   </span>
                 </div>
@@ -123,11 +124,11 @@ export const ClientTable: React.FC<ClientTableProps> = ({
 
               {/* Primary Contact */}
               <TableCell>
-                <div className="flex flex-col text-xs">
-                  <span className="font-medium text-foreground">
+                <div className="flex flex-col text-xs truncate">
+                  <span className="font-semibold text-foreground truncate">
                     {client.primaryContact.name}
                   </span>
-                  <span className="text-muted-foreground text-[11px]">
+                  <span className="text-muted-foreground text-[11px] truncate">
                     {client.primaryContact.title}
                   </span>
                 </div>
@@ -140,24 +141,24 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                       <span className="sr-only">Open menu</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Client Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)}>
-                      <ExternalLink className="mr-2 h-3.5 w-3.5" /> View Full Dossier
+                  <DropdownMenuContent align="end" className="w-52 rounded-xl shadow-premium border-border/80">
+                    <DropdownMenuLabel className="text-xs font-semibold text-foreground">Client Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)} className="text-xs cursor-pointer">
+                      <ExternalLink className="mr-2 h-3.5 w-3.5 text-primary" /> View Full Dossier
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEditClient(client)}>
-                      <Edit3 className="mr-2 h-3.5 w-3.5" /> Edit Profile &amp; Scope
+                    <DropdownMenuItem onClick={() => onEditClient(client)} className="text-xs cursor-pointer">
+                      <Edit3 className="mr-2 h-3.5 w-3.5 text-muted-foreground" /> Edit Profile &amp; Scope
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => onDeleteClient(client)}
-                      className="text-destructive focus:text-destructive"
+                      className="text-xs text-destructive focus:text-destructive cursor-pointer"
                     >
                       <Trash2 className="mr-2 h-3.5 w-3.5" /> Archive Client
                     </DropdownMenuItem>

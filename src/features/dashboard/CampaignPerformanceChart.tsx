@@ -2,7 +2,6 @@ import React from 'react'
 import {
   BarChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,7 +10,8 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Megaphone } from 'lucide-react'
+import { Megaphone, Sparkles } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 // Realistic campaign comparison data
 const data = [
@@ -19,29 +19,32 @@ const data = [
   { campaign: 'Helion Fusion', impressionsK: 1090, coverage: 13 },
   { campaign: 'CyberShield Q3', impressionsK: 910, coverage: 22 },
   { campaign: 'Astra Robotics', impressionsK: 1405, coverage: 12 },
-  { campaign: 'Lumina EU Blitz', impressionsK: 1340, coverage: 23 },
-  { campaign: 'Aetheria Vogue', impressionsK: 1920, coverage: 23 }
+  { campaign: 'Lumina Diagnostics', impressionsK: 1340, coverage: 23 },
+  { campaign: 'Aetheria Luxury', impressionsK: 1920, coverage: 28 }
 ]
 
 export const CampaignPerformanceChart: React.FC = () => {
   return (
-    <Card className="border-slate-200 dark:border-slate-800">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-border/80 shadow-subtle overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/60 bg-card/60">
         <div className="space-y-0.5">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
-            <Megaphone className="h-4 w-4 text-sky-500" />
-            Campaign Performance (Impressions vs Secured Coverage)
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+            <Megaphone className="h-4 w-4 text-primary" />
+            Campaign Reach vs Verified Editorial Features
           </CardTitle>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Comparing verified reader reach (thousands) to verified tier-1 editorial placements
           </p>
         </div>
+        <Badge variant="sand" className="text-[11px] font-semibold">
+          112 Total Articles
+        </Badge>
       </CardHeader>
-      <CardContent className="pt-2">
+      <CardContent className="pt-4">
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+            <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={6}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border/60" />
               <XAxis
                 dataKey="campaign"
                 tick={{ fontSize: 10, fill: '#64748B' }}
@@ -65,11 +68,13 @@ export const CampaignPerformanceChart: React.FC = () => {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#0F172A',
-                  borderColor: '#1E293B',
-                  borderRadius: '8px',
+                  backgroundColor: 'rgba(23, 27, 33, 0.95)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
                   color: '#fff',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(8px)'
                 }}
                 formatter={(val, name) => {
                   if (name === 'Impressions') return [`${Number(val).toLocaleString()}K Views`, name]
@@ -80,24 +85,21 @@ export const CampaignPerformanceChart: React.FC = () => {
                 verticalAlign="top"
                 align="right"
                 iconType="circle"
-                wrapperStyle={{ paddingBottom: '12px', fontSize: '11px' }}
+                wrapperStyle={{ paddingBottom: '12px', fontSize: '11px', fontWeight: 500 }}
               />
               <Bar
                 yAxisId="left"
                 dataKey="impressionsK"
-                name="Impressions (Thousands)"
-                fill="#0EA5E9"
-                radius={[4, 4, 0, 0]}
-                barSize={28}
+                name="Impressions (K)"
+                fill="#3B82F6"
+                radius={[6, 6, 0, 0]}
               />
-              <Line
+              <Bar
                 yAxisId="right"
-                type="monotone"
                 dataKey="coverage"
-                name="Coverage Secured (Articles)"
-                stroke="#10B981"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#10B981' }}
+                name="Secured Coverage"
+                fill="#10B981"
+                radius={[6, 6, 0, 0]}
               />
             </BarChart>
           </ResponsiveContainer>

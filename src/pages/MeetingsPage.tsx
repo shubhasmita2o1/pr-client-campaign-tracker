@@ -199,7 +199,7 @@ export const MeetingsPage: React.FC = () => {
       </PageHeader>
 
       {/* Filter Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card p-3 rounded-2xl border border-border/80 shadow-subtle">
         <div className="flex flex-1 flex-wrap items-center gap-2.5">
           {/* Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -318,7 +318,7 @@ export const MeetingsPage: React.FC = () => {
       {/* Main Content Area */}
       {viewMode === 'list' ? (
         /* List View */
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-subtle">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">

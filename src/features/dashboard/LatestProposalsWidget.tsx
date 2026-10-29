@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { FileText, Download, ArrowRight } from 'lucide-react'
+import { FileText, Download, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react'
 import { useClients } from '@/hooks/useClients'
 import { clientService } from '@/services/clientService'
 import { toast } from 'sonner'
@@ -45,85 +45,76 @@ export const LatestProposalsWidget: React.FC = () => {
   }
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
+    <Card className="border-border/80 shadow-subtle overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/60 bg-card/60">
         <div>
-          <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
-            <FileText className="h-4 w-4 text-sky-500" />
-            Latest Proposals &amp; Contracts
+          <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+            <FileText className="h-4 w-4 text-primary" />
+            Active Client Proposals &amp; Retainer Agreements
           </CardTitle>
-          <p className="text-xs text-slate-500">
-            PDF documents stored in Supabase &ldquo;proposals&rdquo; bucket
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Encrypted PDF documents stored in Supabase &ldquo;proposals&rdquo; vault
           </p>
         </div>
         <Button
           variant="ghost"
           size="xs"
           asChild
-          className="text-xs gap-1 text-sky-600 hover:text-sky-700 dark:text-sky-400"
+          className="text-xs gap-1 text-primary hover:text-primary/80 font-medium"
         >
           <Link to="/clients">
-            <span>All Clients</span>
+            <span>All Retainers</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
       </CardHeader>
-      <CardContent className="space-y-2.5 pt-0">
+      <CardContent className="space-y-2.5 p-4 sm:p-5 pt-4">
         {isLoading ? (
-          <div className="py-6 text-center text-xs text-slate-400">
+          <div className="py-6 text-center text-xs text-muted-foreground">
             Loading proposals...
           </div>
         ) : allProposals.length === 0 ? (
-          <div className="py-6 text-center text-xs text-slate-400 border border-dashed rounded-lg">
+          <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border/70 rounded-xl">
             No proposal documents found. Attach a PDF to any client record.
           </div>
         ) : (
           allProposals.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-800/30 hover:border-sky-300 dark:hover:border-sky-800 transition-colors group"
+              className="flex items-center justify-between p-3 rounded-xl border border-border/70 hover:border-primary/40 bg-card hover:bg-secondary/40 transition-all duration-200 group"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900/60 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                  <FileText className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                  <FileText className="h-4 w-4" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                    {doc.name}
-                  </p>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {doc.clientName}
+                <div className="truncate">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                      {doc.name}
                     </span>
-                    <span>&bull;</span>
-                    <span>{doc.fileSize}</span>
-                    <span>&bull;</span>
-                    <span className="capitalize">{doc.type}</span>
+                    <Badge
+                      variant={doc.status === 'signed' ? 'sage' : doc.status === 'review' ? 'sand' : 'secondary'}
+                      className="text-[10px] px-1.5 py-0 h-4 capitalize"
+                    >
+                      {doc.status}
+                    </Badge>
                   </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    Client: {doc.clientName} &bull; {doc.fileSize}
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] capitalize px-2 py-0.5 ${
-                    doc.status === 'signed'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
-                      : doc.status === 'review'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  {doc.status}
-                </Badge>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => handleDownload(e, doc.filePath || doc.url, doc.name)}
-                  className="h-7 w-7 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                  title="Download PDF"
+                  variant="outline"
+                  size="xs"
+                  onClick={(e) => handleDownload(e, doc.filePath, doc.name)}
+                  className="h-7 text-[11px] gap-1 rounded-lg border-border/70 hover:bg-secondary"
+                  title="Download / View PDF"
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-3 w-3 text-muted-foreground" />
+                  <span className="hidden sm:inline">PDF</span>
                 </Button>
               </div>
             </div>
